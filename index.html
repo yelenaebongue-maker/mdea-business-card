@@ -24,7 +24,12 @@
   const authReady = (async () => {
     const user = await NetlifyAuth.getUser();
     if (!user) {
-      window.location.href = '/login';
+      // Si un lien d'invitation/réinitialisation est présent dans l'URL
+      // (#invite_token=..., #recovery_token=...), on le transmet à /login
+      // au lieu de le perdre, pour que la personne puisse définir son
+      // mot de passe.
+      const authToken = NetlifyAuth.readAuthTokenFromUrl();
+      window.location.href = '/login' + (authToken ? window.location.hash : '');
       return;
     }
     currentUser = user;

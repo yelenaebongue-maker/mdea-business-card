@@ -60,7 +60,15 @@
       <input type="password" id="password" required autocomplete="current-password">
       <button type="submit" id="submitBtn">Se connecter</button>
     </form>
-    <div class="link-row"><a onclick="resetPassword()">Mot de passe oublié ?</a></div>
+    <div class="link-row" id="forgotRow"><a onclick="resetPassword()">Mot de passe oublié ?</a></div>
+
+    <form id="setPasswordForm" style="display:none">
+      <label>Choisissez votre mot de passe</label>
+      <input type="password" id="newPassword" required autocomplete="new-password" minlength="8" placeholder="8 caractères minimum">
+      <label>Confirmez le mot de passe</label>
+      <input type="password" id="newPasswordConfirm" required autocomplete="new-password" minlength="8">
+      <button type="submit" id="setPasswordBtn">Valider et me connecter</button>
+    </form>
   </div>
 
 <script>
@@ -70,9 +78,42 @@ function showMsg(text, type) {
   el.className = 'msg ' + type;
 }
 
-// Si déjà connecté (token valide en cache), on va directement à l'éditeur.
-NetlifyAuth.getUser().then(user => {
-  if (user) window.location.href = '/';
+// ------------------------------------------------------------
+// Lien d'invitation ("bienvenue") ou de réinitialisation
+// ("mot de passe oublié") : l'URL contient alors #invite_token=...
+// ou #recovery_token=... — on affiche le formulaire "définir un
+// mot de passe" à la place du formulaire de connexion classique.
+// ------------------------------------------------------------
+const authToken = NetlifyAuth.readAuthTokenFromUrl();
+if (authToken) {
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('forgotRow').style.display = 'none';
+  document.getElementById('setPasswordForm').style.display = 'block';
+  document.querySelector('h1').textContent = authToken.type === 'recovery'
+    ? 'Nouveau mot de passe'
+    : 'Bienvenue — créez votre mot de passe';
+} else {
+  // Si déjà connecté (token valide en cache), on va directement à l'éditeur.
+  NetlifyAuth.getUser().then(user => {
+    if (user) window.location.href = '/';
+  });
+}
+
+document.getElementById('setPasswordForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const pw1 = document.getElementById('newPassword').value;
+  const pw2 = document.getElementById('newPasswordConfirm').value;
+  if (pw1.length < 8) { showMsg('Le mot de passe doit faire au moins 8 caractères.', 'error'); return; }
+  if (pw1 !== pw2) { showMsg('Les deux mots de passe ne correspondent pas.', 'error'); return; }
+  const btn = document.getElementById('setPasswordBtn');
+  btn.disabled = true; btn.textContent = 'Enregistrement…';
+  try {
+    await NetlifyAuth.setPasswordFromToken(authToken.token, authToken.type, pw1);
+    window.location.href = '/';
+  } catch (err) {
+    showMsg(err.message || 'Ce lien est invalide ou a expiré.', 'error');
+    btn.disabled = false; btn.textContent = 'Valider et me connecter';
+  }
 });
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {

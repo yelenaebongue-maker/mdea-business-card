@@ -85,6 +85,49 @@
     if (!res.ok) throw new Error("Impossible d'envoyer l'email de réinitialisation.");
   }
 
+  // Finalise une invitation ("Rejoindre") ou une récupération de mot de
+  // passe ("Mot de passe oublié") à partir du token présent dans l'URL
+  // (ex: #invite_token=xxx ou #recovery_token=xxx envoyé par email).
+  // type doit valoir 'signup' (invitation) ou 'recovery'.
+  async function setPasswordFromToken(token, type, password) {
+    const verifyRes = await fetch('/.netlify/identity/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, token })
+    });
+    if (!verifyRes.ok) {
+      const err = await verifyRes.json().catch(() => ({}));
+      throw new Error(err.error_description || 'Ce lien est invalide ou a expiré.');
+    }
+    const tokenData = await verifyRes.json();
+    const session = {
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      expires_at: Date.now() + (tokenData.expires_in || 3600) * 1000
+    };
+    writeSession(session);
+
+    const setPwRes = await fetch('/.netlify/identity/user', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+      body: JSON.stringify({ password })
+    });
+    if (!setPwRes.ok) throw new Error("Impossible d'enregistrer le mot de passe.");
+    return setPwRes.json();
+  }
+
+  // Lit un token d'invitation/récupération/confirmation dans le hash de
+  // l'URL (#invite_token=..., #recovery_token=..., #confirmation_token=...).
+  // Retourne { token, type } ou null si aucun n'est présent.
+  function readAuthTokenFromUrl() {
+    const hash = window.location.hash || '';
+    const inviteMatch = hash.match(/(?:invite|confirmation)_token=([^&]+)/);
+    if (inviteMatch) return { token: inviteMatch[1], type: 'signup' };
+    const recoveryMatch = hash.match(/recovery_token=([^&]+)/);
+    if (recoveryMatch) return { token: recoveryMatch[1], type: 'recovery' };
+    return null;
+  }
+
   async function logout() {
     writeSession(null);
   }
@@ -98,5 +141,5 @@
     return fetch(url, Object.assign({}, options, { headers }));
   }
 
-  window.NetlifyAuth = { login, logout, getUser, getToken, recoverPassword, authedFetch };
+  window.NetlifyAuth = { login, logout, getUser, getToken, recoverPassword, authedFetch, setPasswordFromToken, readAuthTokenFromUrl };
 })(window);
