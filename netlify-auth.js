@@ -89,11 +89,23 @@
   // passe ("Mot de passe oublié") à partir du token présent dans l'URL
   // (ex: #invite_token=xxx ou #recovery_token=xxx envoyé par email).
   // type doit valoir 'signup' (invitation) ou 'recovery'.
+  // IMPORTANT : pour une INVITATION (type 'signup'), GoTrue exige que
+  // le token ET le mot de passe soient envoyés dans le MÊME appel
+  // /verify (c'est ce que fait acceptInvite() côté @netlify/identity
+  // officiel). Séparer verify puis PUT /user fait échouer /verify côté
+  // serveur, qui répond alors par une erreur générique interprétée à
+  // tort comme "lien expiré". Pour une RÉCUPÉRATION (type 'recovery'),
+  // le token seul suffit à /verify (l'utilisateur existe déjà) ; le
+  // mot de passe se change ensuite via un second appel PUT /user.
   async function setPasswordFromToken(token, type, password) {
+    const verifyBody = type === 'signup'
+      ? { type, token, password }   // invitation : tout en un seul appel
+      : { type, token };            // récupération : token seul ici
+
     const verifyRes = await fetch('/.netlify/identity/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, token })
+      body: JSON.stringify(verifyBody)
     });
     if (!verifyRes.ok) {
       const err = await verifyRes.json().catch(() => ({}));
@@ -106,6 +118,11 @@
       expires_at: Date.now() + (tokenData.expires_in || 3600) * 1000
     };
     writeSession(session);
+
+    if (type === 'signup') {
+      // Le mot de passe a déjà été posé par /verify ci-dessus.
+      return tokenData;
+    }
 
     const setPwRes = await fetch('/.netlify/identity/user', {
       method: 'PUT',
