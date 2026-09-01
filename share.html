@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MDEA Business Card — Partage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+
+
+<style>
+  :root {
+    --black:#000; --white:#fff; --mid-gray:#8a8680; --light-gray:#d0ccc4;
+    --charcoal:#1a1917; --dark-gray:#2a2926; --gold:#c9a96e; --gold-light:#e5c99a;
+    --font-heading:'Playfair Display',serif; --font-body:'Montserrat',sans-serif;
+    --radius-sm:2px; --radius-md:6px; --radius-lg:12px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--black); color:var(--white); font-family:var(--font-body); min-height:100vh; }
+  a { text-decoration:none; color:inherit; }
+
+  .top-bar { display:flex; align-items:center; justify-content:center; padding:18px 24px; border-bottom:1px solid rgba(255,255,255,0.06); }
+  .top-bar .brand { font-family:var(--font-heading); font-size:0.95rem; }
+  .top-bar .brand span { color:var(--gold); }
+
+  .wrap { max-width:560px; margin:0 auto; padding:40px 24px 80px; }
+
+  .state-screen { min-height:60vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:14px; padding:40px 24px; }
+  .spinner { width:30px; height:30px; border:2px solid rgba(201,169,110,0.25); border-top-color:var(--gold); border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .state-screen p { color:var(--mid-gray); font-size:0.85rem; max-width:320px; line-height:1.6; }
+
+  .head-block { padding:32px; background:var(--charcoal); border:1px solid rgba(201,169,110,0.15); border-radius:var(--radius-lg); margin-bottom:24px; position:relative; overflow:hidden; }
+  .head-block::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,#9a7a48,var(--gold),var(--gold-light)); }
+  .head-title { font-family:var(--font-heading); font-size:1.5rem; }
+  .head-text { font-size:0.82rem; color:var(--light-gray); margin-top:10px; line-height:1.7; white-space:pre-wrap; }
+
+  .file-list { display:flex; flex-direction:column; gap:12px; }
+  .file-row { display:flex; align-items:center; gap:14px; background:var(--charcoal); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-md); padding:16px 18px; }
+  .file-icon { font-size:1.4rem; flex-shrink:0; width:36px; text-align:center; }
+  .file-info { flex:1; min-width:0; }
+  .file-name { font-size:0.82rem; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-meta { font-size:0.65rem; color:var(--mid-gray); margin-top:2px; }
+  .file-action {
+    font-size:0.6rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--black); background:var(--gold); padding:9px 16px; border-radius:var(--radius-sm);
+    white-space:nowrap; transition:.25s;
+  }
+  .file-action:hover { background:var(--gold-light); }
+
+  .save-all-btn {
+    display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+    font-size:0.68rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--black); background:var(--gold); padding:14px; border-radius:var(--radius-sm);
+    margin-bottom:24px; cursor:pointer; border:none; transition:.25s;
+  }
+  .save-all-btn:hover { background:var(--gold-light); }
+
+  .footer-brand { text-align:center; padding:30px 24px 10px; font-size:0.58rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--mid-gray); }
+  .footer-brand span { color:var(--gold); }
+</style>
+</head>
+<body>
+
+<div class="top-bar"><div class="brand">MDEA <span>Business Card</span></div></div>
+<div id="root"><div class="state-screen"><div class="spinner"></div><p>Chargement du partage…</p></div></div>
+
+<script>
+function escHtml(s) {
+  return (s || '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function renderState(html) {
+  document.getElementById('root').innerHTML = `<div class="state-screen">${html}</div>`;
+}
+function fileIcon(type, name) {
+  const n = (name || '').toLowerCase();
+  if (type?.includes('vcard') || n.endsWith('.vcf')) return '👤';
+  if (type?.includes('pdf') || n.endsWith('.pdf')) return '📕';
+  if (type?.startsWith('image/')) return '🖼';
+  if (type?.includes('presentation') || n.endsWith('.ppt') || n.endsWith('.pptx')) return '📊';
+  return '📄';
+}
+function formatSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' o';
+  if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' Ko';
+  return (bytes/1048576).toFixed(1) + ' Mo';
+}
+
+async function saveContact(vcardFile) {
+  try {
+    const res = await fetch(vcardFile.url);
+    const text = await res.text();
+    const blob = new Blob([text], { type: 'text/vcard' });
+    const file = new File([blob], vcardFile.name, { type: 'text/vcard' });
+    if (navigator.canShare && navigator.canShare({ files:[file] })) {
+      await navigator.share({ files:[file], title:'Contact' });
+      return;
+    }
+  } catch(e) {}
+  window.location.href = vcardFile.url;
+}
+
+function renderShare(data) {
+  const files = data.files || [];
+  const vcard = files.find(f => f.type?.includes('vcard') || f.name?.toLowerCase().endsWith('.vcf'));
+
+  let html = '<div class="wrap">';
+  html += `<div class="head-block">
+    <div class="head-title">${escHtml(data.title || 'MDEA Business Card')}</div>
+    ${data.text ? `<div class="head-text">${escHtml(data.text)}</div>` : ''}
+  </div>`;
+
+  if (vcard) {
+    html += `<button class="save-all-btn" id="btnSaveContact">💾 Enregistrer le contact</button>`;
+  }
+
+  if (files.length) {
+    html += '<div class="file-list">';
+    files.forEach(f => {
+      html += `<div class="file-row">
+        <div class="file-icon">${fileIcon(f.type, f.name)}</div>
+        <div class="file-info">
+          <div class="file-name">${escHtml(f.name)}</div>
+          <div class="file-meta">${formatSize(f.size)}</div>
+        </div>
+        <a class="file-action" href="${f.url}" target="_blank" rel="noopener" download="${escHtml(f.name)}">Ouvrir</a>
+      </div>`;
+    });
+    html += '</div>';
+  } else {
+    html += '<p style="color:var(--mid-gray);font-size:0.8rem">Aucun fichier joint à ce partage.</p>';
+  }
+
+  html += '</div>';
+  document.getElementById('root').innerHTML = html;
+
+  if (vcard) {
+    document.getElementById('btnSaveContact').addEventListener('click', () => saveContact(vcard));
+  }
+  document.title = `${data.title || 'MDEA Business Card'} — Partage`;
+}
+
+async function loadShare() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  if (!id) { renderState('<p>Lien de partage invalide.</p>'); return; }
+  try {
+    const res = await fetch(`/.netlify/functions/get-share?id=${encodeURIComponent(id)}`);
+    if (res.status === 404) { renderState('<p>Ce partage n\'existe pas ou a expiré.</p>'); return; }
+    if (!res.ok) throw new Error('http ' + res.status);
+    const data = await res.json();
+    renderShare(data);
+  } catch (e) {
+    console.error(e);
+    renderState('<p>Impossible de charger ce partage pour le moment.</p>');
+  }
+}
+loadShare();
+</script>
+
+<div class="footer-brand">MDEA <span>Business Card</span> — Black Edition</div>
+</body>
+</html>

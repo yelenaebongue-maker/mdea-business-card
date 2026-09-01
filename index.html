@@ -1,0 +1,4069 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MDEA Business Card — Black Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+<!-- ============================================================
+     NETLIFY IDENTITY — remplace l'auth Firebase. Le helper
+     /netlify-auth.js parle directement à l'API GoTrue intégrée
+     à Netlify (/.netlify/identity/*), pas de clé/config requise.
+     ============================================================ -->
+<script src="/netlify-auth.js"></script>
+<script>
+  // ------------------------------------------------------------
+  // GATE D'AUTHENTIFICATION — cette page est l'éditeur privé.
+  // Si personne n'est connecté, on renvoie immédiatement vers /login
+  // avant même que le reste de l'app ne s'affiche.
+  // ------------------------------------------------------------
+  let currentUsername = null;
+  let currentUser = null;
+  const authReady = (async () => {
+    const user = await NetlifyAuth.getUser();
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+    currentUser = user;
+    currentUsername = (user.user_metadata && user.user_metadata.username) || null;
+    return user;
+  })();
+</script>
+<style>
+/* ============================================================
+   MDEA BUSINESS CARD — BLACK EDITION
+   CSS Custom Properties
+   ============================================================ */
+:root {
+  --black:       #000000;
+  --white:       #ffffff;
+  --off-white:   #f5f4f0;
+  --bone:        #e8e4dc;
+  --light-gray:  #d0ccc4;
+  --mid-gray:    #8a8680;
+  --dark-gray:   #2a2926;
+  --charcoal:    #1a1917;
+  --gold:        #c9a96e;
+  --gold-light:  #e5c99a;
+  --gold-dark:   #9a7a48;
+
+  --font-display: 'Cormorant Garamond', serif;
+  --font-heading: 'Playfair Display', serif;
+  --font-body:    'Montserrat', sans-serif;
+
+  --radius-sm: 2px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+
+  --shadow-card: 0 24px 80px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.1);
+  --shadow-modal: 0 40px 120px rgba(0,0,0,0.4);
+  --transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ============================================================ RESET */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--black);
+  color: var(--white);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+button { cursor: pointer; border: none; background: none; font-family: var(--font-body); }
+input, textarea, select { font-family: var(--font-body); outline: none; }
+a { text-decoration: none; color: inherit; }
+
+/* ============================================================
+   9 THEMES — always ultra-chic
+   ============================================================ */
+/* Default = Or Noir (original) — already defined in :root */
+
+/* 1. Argent Glacier */
+body.theme-silver {
+  --gold:       #b8bec8;
+  --gold-light: #d8dee8;
+  --gold-dark:  #8a9098;
+  --charcoal:   #18191c;
+  --dark-gray:  #23252a;
+}
+/* 2. Rubis Sombre */
+body.theme-ruby {
+  --gold:       #c0314a;
+  --gold-light: #e05570;
+  --gold-dark:  #8a1a30;
+  --charcoal:   #1c1518;
+  --dark-gray:  #2a1820;
+}
+/* 3. Saphir Nuit */
+body.theme-sapphire {
+  --gold:       #4a7fc1;
+  --gold-light: #7aabee;
+  --gold-dark:  #2a528a;
+  --charcoal:   #141820;
+  --dark-gray:  #1c2230;
+}
+/* 4. Émeraude */
+body.theme-emerald {
+  --gold:       #2e9970;
+  --gold-light: #5abf96;
+  --gold-dark:  #1a6648;
+  --charcoal:   #131c18;
+  --dark-gray:  #1a2820;
+}
+/* 5. Améthyste */
+body.theme-amethyst {
+  --gold:       #9466c8;
+  --gold-light: #bb99ee;
+  --gold-dark:  #6633a0;
+  --charcoal:   #181520;
+  --dark-gray:  #231c30;
+}
+/* 6. Cuivre Brûlé */
+body.theme-copper {
+  --gold:       #c87540;
+  --gold-light: #e09a68;
+  --gold-dark:  #8a4e1a;
+  --charcoal:   #1c1714;
+  --dark-gray:  #2a2018;
+}
+/* 7. Platine Froid */
+body.theme-platinum {
+  --gold:       #9eaab5;
+  --gold-light: #c8d8e4;
+  --gold-dark:  #6a8090;
+  --black:      #0a0e12;
+  --charcoal:   #131820;
+  --dark-gray:  #1e2530;
+}
+/* 8. Nuit Rosée */
+body.theme-rose {
+  --gold:       #c86888;
+  --gold-light: #e89ab2;
+  --gold-dark:  #8a3a55;
+  --charcoal:   #1c1418;
+  --dark-gray:  #2a1a22;
+}
+/* 9. Ivoire Doré (variante chaude) */
+body.theme-ivory {
+  --gold:       #d4a853;
+  --gold-light: #edd090;
+  --gold-dark:  #a07828;
+  --black:      #0d0b08;
+  --charcoal:   #1c1a14;
+  --dark-gray:  #2a2618;
+}
+
+/* ============================================================
+   THEME PICKER
+   ============================================================ */
+.theme-picker-btn {
+  width: 34px; height: 34px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius-sm);
+  color: var(--gold);
+  font-size: 1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+  position: relative;
+}
+.theme-picker-btn:hover { border-color: var(--gold); }
+.theme-palette-dropdown {
+  position: absolute; top: calc(100% + 12px); right: 0;
+  background: var(--charcoal);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: none;
+  z-index: 999;
+  min-width: 220px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: modalIn 0.25s ease-out;
+}
+.theme-palette-dropdown.open { display: block; }
+.theme-palette-title {
+  font-size: 0.55rem; font-weight: 600; letter-spacing: 0.3em;
+  text-transform: uppercase; color: var(--mid-gray);
+  margin-bottom: 12px;
+}
+.theme-swatches { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.theme-swatch {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer; padding: 8px 4px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; transition: var(--transition);
+}
+.theme-swatch:hover { border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); }
+.theme-swatch.active { border-color: var(--gold); }
+.theme-swatch-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.12);
+}
+.theme-swatch-name {
+  font-size: 0.5rem; font-weight: 500; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--mid-gray); text-align: center;
+}
+
+/* ============================================================ SCROLLBAR */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--black); }
+::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
+
+/* ============================================================ SPLASH SCREEN */
+#splash {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--black);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 24px;
+  animation: splashOut 0.8s ease-out 2.4s forwards;
+}
+#splash .splash-line {
+  width: 1px; height: 0; background: var(--gold);
+  animation: growLine 0.6s ease-out 0.3s forwards;
+}
+#splash h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  font-weight: 300;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--white);
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.8s forwards;
+  text-align: center;
+}
+#splash p {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  font-weight: 300;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 1.2s forwards;
+}
+#splash .splash-divider {
+  width: 0; height: 1px; background: var(--gold);
+  opacity: 0;
+  animation: growWidth 0.8s ease-out 1.4s forwards;
+}
+@keyframes growLine { to { height: 60px; } }
+@keyframes growWidth { 0% { width:0; opacity:1; } 100% { width:120px; opacity:1; } }
+@keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes splashOut { to { opacity:0; pointer-events:none; } }
+
+/* ============================================================ APP WRAPPER */
+#app {
+  opacity: 0;
+  animation: appIn 0.8s ease-out 2.8s forwards;
+}
+@keyframes appIn { to { opacity:1; } }
+
+/* ============================================================ NAVIGATION */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 40px;
+  background: rgba(0,0,0,0.92);
+  border-bottom: 1px solid rgba(201,169,110,0.15);
+  backdrop-filter: blur(12px);
+}
+.nav-brand {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--white);
+}
+.nav-brand span { color: var(--gold); }
+.nav-tabs {
+  display: flex; gap: 4px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+.nav-tab {
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mid-gray);
+  padding: 8px 14px;
+  border-radius: 4px;
+  transition: var(--transition);
+}
+.nav-tab:hover { color: var(--white); background: rgba(255,255,255,0.06); }
+.nav-tab.active { color: var(--black); background: var(--gold); }
+.nav-actions { display: flex; gap: 12px; align-items: center; }
+.btn-share {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--black);
+  background: var(--gold);
+  padding: 9px 20px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+.btn-share:hover { background: var(--gold-light); }
+
+/* ============================================================ MAIN CONTENT */
+main {
+  padding-top: 80px;
+  min-height: 100vh;
+}
+.section { display: none; animation: sectionIn 0.45s ease-out; }
+.section.active { display: block; }
+@keyframes sectionIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+/* ============================================================ PAGE HEADER */
+.page-header {
+  padding: 64px 40px 40px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: flex-end; justify-content: space-between;
+  flex-wrap: wrap; gap: 20px;
+}
+.page-header-left {}
+.page-eyebrow {
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.page-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  color: var(--white);
+  line-height: 1.1;
+}
+.page-title em { font-style: italic; color: var(--gold); }
+
+/* ============================================================ BTN STYLES */
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 0.62rem; font-weight: 600; letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--black); background: var(--gold);
+  padding: 12px 24px; border-radius: var(--radius-sm);
+  transition: var(--transition);
+  border: 1px solid var(--gold);
+}
+.btn-primary:hover { background: var(--gold-light); border-color: var(--gold-light); }
+.btn-outline {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 0.62rem; font-weight: 500; letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--white); background: transparent;
+  padding: 11px 24px; border-radius: var(--radius-sm);
+  transition: var(--transition);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.6rem; font-weight: 500; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--mid-gray);
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  transition: var(--transition);
+  border: 1px solid transparent;
+}
+.btn-ghost:hover { color: var(--white); border-color: rgba(255,255,255,0.1); }
+.btn-danger {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.6rem; font-weight: 500; letter-spacing: 0.1em;
+  text-transform: uppercase; color: #e05050;
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  transition: var(--transition);
+  border: 1px solid transparent;
+}
+.btn-danger:hover { border-color: rgba(224,80,80,0.3); background: rgba(224,80,80,0.08); }
+.btn-icon {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--mid-gray);
+  transition: var(--transition);
+}
+.btn-icon:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ============================================================ GRID CARD */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+  padding: 40px;
+}
+.card {
+  background: var(--charcoal);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition);
+  position: relative;
+}
+.card:hover {
+  border-color: rgba(201,169,110,0.25);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card);
+}
+.card-accent {
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light));
+}
+
+/* ============================================================
+   SECTION: PROFILES
+   ============================================================ */
+.profile-card {
+  display: flex; flex-direction: column;
+}
+.profile-card-header {
+  padding: 28px;
+  display: flex; gap: 20px; align-items: flex-start;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.profile-photo {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--dark-gray);
+  border: 2px solid var(--gold);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem; color: var(--gold);
+}
+.profile-photo img { width: 100%; height: 100%; object-fit: cover; }
+.profile-info-brief {}
+.profile-name {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: var(--white);
+  line-height: 1.2;
+}
+.profile-title {
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-top: 4px;
+}
+.profile-company {
+  font-size: 0.72rem;
+  color: var(--mid-gray);
+  margin-top: 3px;
+}
+.profile-card-body { padding: 20px 28px; flex: 1; }
+.profile-tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.tag {
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mid-gray);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 4px 10px;
+  border-radius: 30px;
+}
+.tag.gold {
+  color: var(--gold);
+  background: rgba(201,169,110,0.08);
+  border-color: rgba(201,169,110,0.2);
+}
+.profile-bio {
+  font-size: 0.78rem;
+  color: var(--mid-gray);
+  line-height: 1.7;
+}
+.profile-card-footer {
+  padding: 16px 28px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.profile-active-badge {
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5ec47a;
+  background: rgba(94,196,122,0.1);
+  border: 1px solid rgba(94,196,122,0.2);
+  padding: 4px 10px;
+  border-radius: 30px;
+}
+
+/* ============================================================ ADD CARD */
+.add-card {
+  border: 1px dashed rgba(201,169,110,0.25);
+  border-radius: var(--radius-lg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px;
+  padding: 48px;
+  cursor: pointer;
+  transition: var(--transition);
+  min-height: 240px;
+  background: rgba(201,169,110,0.02);
+}
+.add-card:hover {
+  border-color: var(--gold);
+  background: rgba(201,169,110,0.06);
+}
+.add-card-icon {
+  font-size: 2rem; color: var(--gold);
+  width: 56px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(201,169,110,0.3);
+  border-radius: 50%;
+}
+.add-card-label {
+  font-size: 0.65rem; font-weight: 500; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--gold);
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.85);
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(8px);
+  overflow-y: auto;
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--charcoal);
+  border: 1px solid rgba(201,169,110,0.2);
+  border-radius: var(--radius-lg);
+  width: 100%; max-width: 760px;
+  max-height: 92vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: var(--shadow-modal);
+  animation: modalIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+.modal-wide { max-width: 900px; }
+@keyframes modalIn {
+  from { opacity:0; transform:scale(0.93) translateY(20px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
+}
+.modal-accent { height: 3px; background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light)); }
+.modal-header {
+  padding: 28px 32px 20px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.modal-title-eyebrow {
+  font-size: 0.58rem; font-weight: 500; letter-spacing: 0.3em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 6px;
+}
+.modal-title {
+  font-family: var(--font-display); font-size: 1.6rem;
+  font-weight: 300; color: var(--white);
+}
+.modal-close {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--mid-gray); font-size: 1.2rem;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+.modal-close:hover { color: var(--white); background: rgba(255,255,255,0.07); }
+.modal-body { padding: 28px 32px; }
+.modal-footer {
+  padding: 20px 32px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex; justify-content: flex-end; gap: 12px;
+}
+
+/* ============================================================ FORM STYLES */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.form-full { grid-column: 1 / -1; }
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-label {
+  font-size: 0.6rem; font-weight: 600; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--mid-gray);
+}
+.form-input, .form-textarea, .form-select {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-sm);
+  color: var(--white);
+  font-size: 0.82rem;
+  padding: 12px 14px;
+  transition: var(--transition);
+  width: 100%;
+}
+.form-input:focus, .form-textarea:focus, .form-select:focus {
+  border-color: var(--gold);
+  background: rgba(201,169,110,0.04);
+}
+.form-input::placeholder, .form-textarea::placeholder { color: var(--mid-gray); }
+.form-textarea { resize: vertical; min-height: 90px; }
+.form-select { appearance: none; }
+.form-hint {
+  font-size: 0.62rem; color: var(--mid-gray); margin-top: 2px;
+}
+.form-section-title {
+  font-family: var(--font-display); font-size: 1.1rem; font-weight: 300;
+  color: var(--gold); margin: 24px 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(201,169,110,0.15);
+}
+
+/* Photo upload */
+.photo-upload-area {
+  border: 1px dashed rgba(201,169,110,0.3);
+  border-radius: var(--radius-md);
+  padding: 28px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; cursor: pointer; transition: var(--transition);
+  text-align: center;
+}
+.photo-upload-area:hover { border-color: var(--gold); background: rgba(201,169,110,0.04); }
+.photo-upload-preview {
+  width: 100px; height: 100px; border-radius: 50%;
+  background: var(--dark-gray); border: 2px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; font-size: 2rem; color: var(--gold);
+}
+.photo-upload-preview img { width:100%; height:100%; object-fit:cover; }
+.photo-upload-label {
+  font-size: 0.65rem; font-weight: 500; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--gold);
+}
+.photo-upload-hint { font-size: 0.65rem; color: var(--mid-gray); }
+
+/* Partner logos */
+.partners-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px; margin-top: 12px;
+}
+.partner-logo-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  position: relative;
+}
+.partner-logo-img {
+  width: 80px; height: 50px; object-fit: contain;
+  filter: grayscale(100%) brightness(1.2);
+}
+.partner-logo-remove {
+  position: absolute; top: 4px; right: 4px;
+  width: 20px; height: 20px;
+  background: rgba(224,80,80,0.15);
+  color: #e05050; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; cursor: pointer;
+  opacity: 0; transition: var(--transition);
+}
+.partner-logo-item:hover .partner-logo-remove { opacity: 1; }
+.partner-logo-add {
+  background: rgba(201,169,110,0.04);
+  border: 1px dashed rgba(201,169,110,0.25);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer; transition: var(--transition);
+  min-height: 80px; justify-content: center;
+}
+.partner-logo-add:hover { border-color: var(--gold); }
+.partner-logo-add span { font-size: 0.58rem; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; }
+
+/* CV Sections */
+.cv-section { margin-top: 20px; }
+.cv-entry {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 10px;
+  position: relative;
+}
+.cv-entry-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.cv-entry-title { font-weight: 500; font-size: 0.85rem; color: var(--white); }
+.cv-entry-sub { font-size: 0.72rem; color: var(--gold); margin-top: 2px; }
+.cv-entry-date { font-size: 0.65rem; color: var(--mid-gray); }
+.cv-entry-desc { font-size: 0.75rem; color: var(--mid-gray); margin-top: 8px; line-height: 1.6; }
+.btn-add-cv-entry {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.6rem; font-weight: 500; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--gold);
+  background: rgba(201,169,110,0.06); border: 1px dashed rgba(201,169,110,0.25);
+  padding: 10px 16px; border-radius: var(--radius-sm);
+  width: 100%; justify-content: center; cursor: pointer;
+  transition: var(--transition);
+}
+.btn-add-cv-entry:hover { background: rgba(201,169,110,0.1); border-color: var(--gold); }
+
+/* ============================================================
+   VIEW PROFILE (Public Display)
+   ============================================================ */
+.view-profile-page {
+  max-width: 820px; margin: 0 auto; padding: 40px 24px 80px;
+}
+.vp-hero {
+  display: flex; gap: 32px; align-items: flex-start;
+  padding: 40px;
+  background: var(--charcoal);
+  border: 1px solid rgba(201,169,110,0.15);
+  border-radius: var(--radius-lg);
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.vp-hero::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light));
+}
+.vp-photo {
+  width: 120px; height: 120px; border-radius: 50%;
+  border: 3px solid var(--gold);
+  overflow: hidden; flex-shrink: 0;
+  background: var(--dark-gray);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 3rem; color: var(--gold);
+}
+.vp-photo img { width:100%; height:100%; object-fit:cover; }
+.vp-info {}
+.vp-name {
+  font-family: var(--font-heading); font-size: 2rem;
+  font-weight: 400; color: var(--white); line-height: 1.1;
+}
+.vp-title {
+  font-size: 0.7rem; font-weight: 500; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--gold); margin-top: 6px;
+}
+.vp-company {
+  font-size: 0.9rem; color: var(--mid-gray); margin-top: 4px;
+}
+.vp-contact-chips {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;
+}
+.vp-chip {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.65rem; color: var(--light-gray);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 5px 12px; border-radius: 30px;
+}
+.vp-chip a { color: inherit; }
+.vp-block {
+  background: var(--charcoal);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  margin-bottom: 20px;
+}
+.vp-block-title {
+  font-size: 0.58rem; font-weight: 600; letter-spacing: 0.3em;
+  text-transform: uppercase; color: var(--gold);
+  margin-bottom: 20px; padding-bottom: 12px;
+  border-bottom: 1px solid rgba(201,169,110,0.12);
+}
+.vp-bio { font-size: 0.85rem; color: var(--light-gray); line-height: 1.8; }
+.vp-skills { display: flex; flex-wrap: wrap; gap: 8px; }
+.vp-skill {
+  font-size: 0.65rem; font-weight: 500;
+  color: var(--white); background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 6px 14px; border-radius: 30px;
+}
+.vp-timeline {}
+.vp-timeline-item {
+  display: flex; gap: 16px;
+  padding-bottom: 24px;
+  position: relative;
+}
+.vp-timeline-item:not(:last-child)::before {
+  content:''; position: absolute; left: 15px; top: 32px; bottom: 0; width: 1px;
+  background: rgba(255,255,255,0.08);
+}
+.vp-timeline-dot {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(201,169,110,0.1); border: 1px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; color: var(--gold); flex-shrink: 0;
+}
+.vp-timeline-content {}
+.vp-timeline-title { font-weight: 500; font-size: 0.88rem; color: var(--white); }
+.vp-timeline-org { font-size: 0.72rem; color: var(--gold); margin-top: 2px; }
+.vp-timeline-date { font-size: 0.65rem; color: var(--mid-gray); margin-top: 2px; }
+.vp-timeline-desc { font-size: 0.78rem; color: var(--mid-gray); margin-top: 6px; line-height: 1.6; }
+.vp-socials { display: flex; flex-wrap: wrap; gap: 10px; }
+.vp-social-btn {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.65rem; font-weight: 500; letter-spacing: 0.08em;
+  color: var(--white); background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 10px 16px; border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+.vp-social-btn:hover { border-color: var(--gold); color: var(--gold); }
+.vp-partners { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.vp-partner-logo {
+  height: 40px; max-width: 120px; object-fit: contain;
+  filter: grayscale(100%) brightness(1.5) opacity(0.7);
+  transition: var(--transition);
+}
+.vp-partner-logo:hover { filter: none; opacity: 1; }
+
+/* ============================================================
+   PORTFOLIO
+   ============================================================ */
+.portfolio-card .card-body { padding: 24px; }
+.portfolio-thumbnail {
+  width: 100%; height: 180px;
+  background: var(--dark-gray);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; position: relative;
+}
+.portfolio-thumbnail img { width:100%; height:100%; object-fit:cover; }
+.portfolio-thumbnail-placeholder {
+  font-size: 3rem; color: rgba(201,169,110,0.3);
+}
+.portfolio-category {
+  font-size: 0.55rem; font-weight: 600; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 6px;
+}
+.portfolio-title {
+  font-family: var(--font-heading); font-size: 1.1rem;
+  font-weight: 400; color: var(--white); line-height: 1.2;
+}
+.portfolio-desc {
+  font-size: 0.75rem; color: var(--mid-gray); line-height: 1.6; margin-top: 8px;
+}
+.portfolio-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.portfolio-footer {
+  padding: 14px 24px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  display: flex; gap: 8px;
+}
+
+/* ============================================================
+   SOCIAL NETWORKS
+   ============================================================ */
+.social-card {
+  display: flex; align-items: center; gap: 20px; padding: 24px 28px;
+}
+.social-icon-wrap {
+  width: 52px; height: 52px; border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; flex-shrink: 0; font-weight: bold;
+}
+.si-linkedin { background: rgba(10,102,194,0.15); color: #0a66c2; }
+.si-twitter  { background: rgba(29,161,242,0.15); color: #1da1f2; }
+.si-instagram{ background: rgba(225,48,108,0.15); color: #e1306c; }
+.si-facebook { background: rgba(24,119,242,0.15); color: #1877f2; }
+.si-youtube  { background: rgba(255,0,0,0.15); color: #ff0000; }
+.si-tiktok   { background: rgba(105,201,208,0.15); color: #69c9d0; }
+.si-website  { background: rgba(201,169,110,0.15); color: var(--gold); }
+.si-github   { background: rgba(255,255,255,0.08); color: var(--white); }
+.social-info { flex: 1; }
+.social-platform { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--mid-gray); margin-bottom: 3px; }
+.social-handle { font-size: 0.9rem; font-weight: 500; color: var(--white); }
+.social-url { font-size: 0.7rem; color: var(--mid-gray); margin-top: 2px; }
+.social-actions { display: flex; gap: 8px; }
+
+/* ============================================================
+   PITCH DECK
+   ============================================================ */
+.pitch-deck-card { overflow: hidden; }
+.pitch-deck-preview {
+  height: 160px;
+  background: linear-gradient(135deg, var(--dark-gray), var(--black));
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.pitch-deck-preview::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 30% 50%, rgba(201,169,110,0.08), transparent 60%);
+}
+.pitch-deck-preview-icon {
+  font-size: 3rem; color: rgba(201,169,110,0.3); z-index: 1;
+}
+.pitch-deck-info { padding: 20px 24px; }
+.pitch-deck-name {
+  font-family: var(--font-heading); font-size: 1rem;
+  font-weight: 400; color: var(--white);
+}
+.pitch-deck-meta {
+  font-size: 0.65rem; color: var(--mid-gray); margin-top: 4px;
+}
+.pitch-deck-footer {
+  padding: 14px 24px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  display: flex; gap: 8px; align-items: center;
+}
+.pitch-active-toggle {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.6rem; font-weight: 500; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--mid-gray);
+}
+.toggle {
+  width: 36px; height: 20px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px; position: relative; cursor: pointer;
+  transition: var(--transition);
+}
+.toggle.on { background: var(--gold); }
+.toggle::after {
+  content: ''; position: absolute;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--white); top: 3px; left: 3px;
+  transition: var(--transition);
+}
+.toggle.on::after { left: 19px; }
+
+/* ============================================================
+   FACTURES PROFORMA
+   ============================================================ */
+.invoice-card {}
+.invoice-card-inner { padding: 24px; }
+.invoice-number {
+  font-size: 0.6rem; font-weight: 600; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 8px;
+}
+.invoice-client { font-size: 1rem; font-weight: 500; color: var(--white); }
+.invoice-amount {
+  font-family: var(--font-display); font-size: 1.6rem;
+  font-weight: 300; color: var(--white); margin-top: 12px;
+}
+.invoice-amount span { font-size: 0.9rem; color: var(--mid-gray); }
+.invoice-meta { font-size: 0.72rem; color: var(--mid-gray); margin-top: 6px; }
+.invoice-status {
+  display: inline-block;
+  font-size: 0.55rem; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 10px; border-radius: 30px; margin-top: 10px;
+}
+.status-draft    { color: var(--mid-gray); background: rgba(138,134,128,0.12); border: 1px solid rgba(138,134,128,0.2); }
+.status-sent     { color: #5eb8e0; background: rgba(94,184,224,0.1); border: 1px solid rgba(94,184,224,0.2); }
+.status-paid     { color: #5ec47a; background: rgba(94,196,122,0.1); border: 1px solid rgba(94,196,122,0.2); }
+.status-overdue  { color: #e05050; background: rgba(224,80,80,0.1); border: 1px solid rgba(224,80,80,0.2); }
+.invoice-card-footer {
+  padding: 14px 24px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  display: flex; gap: 8px;
+}
+
+/* Invoice Modal - Line Items */
+.invoice-items-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+.invoice-items-table th {
+  font-size: 0.58rem; font-weight: 600; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--mid-gray);
+  padding: 8px 12px; text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.invoice-items-table td {
+  padding: 10px 12px; font-size: 0.8rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.invoice-total-row {
+  display: flex; justify-content: flex-end;
+  gap: 32px; margin-top: 16px; padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.invoice-total-label {
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--mid-gray);
+}
+.invoice-total-amount {
+  font-family: var(--font-display); font-size: 1.3rem;
+  font-weight: 300; color: var(--white);
+}
+.item-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.item-row .form-input { flex: 1; }
+.item-row .form-input.narrow { flex: 0 0 90px; }
+
+/* ============================================================
+   SHARE MODAL
+   ============================================================ */
+.share-modal-body { padding: 32px; }
+.share-option-group { margin-bottom: 28px; }
+.share-option-title {
+  font-size: 0.58rem; font-weight: 600; letter-spacing: 0.3em;
+  text-transform: uppercase; color: var(--gold);
+  margin-bottom: 14px;
+}
+.share-checklist { display: flex; flex-direction: column; gap: 8px; }
+.share-check-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius-sm);
+  cursor: pointer; transition: var(--transition);
+}
+.share-check-item:hover { border-color: rgba(201,169,110,0.2); }
+.share-check-item.selected { border-color: var(--gold); background: rgba(201,169,110,0.05); }
+.share-checkbox {
+  width: 18px; height: 18px; border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; color: var(--gold);
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.share-check-item.selected .share-checkbox { background: var(--gold); color: var(--black); border-color: var(--gold); }
+.share-item-name { font-size: 0.82rem; color: var(--white); flex: 1; }
+.share-item-meta { font-size: 0.65rem; color: var(--mid-gray); }
+.share-qr-wrap {
+  margin-top: 24px; padding: 24px;
+  background: var(--white); border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+}
+.share-qr-placeholder {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.qr-grid {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 160px; min-height: 160px;
+}
+.qr-grid img, .qr-grid canvas { display: block; }
+.qr-cell {
+  width: 16px; height: 16px; background: var(--black); border-radius: 1px;
+}
+.qr-cell.w { background: transparent; }
+.share-link-box {
+  margin-top: 16px;
+  display: flex; gap: 10px; align-items: center;
+}
+.share-link-input {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-sm);
+  color: var(--mid-gray);
+  font-size: 0.75rem;
+  padding: 10px 14px;
+}
+
+/* ============================================================
+   SHARE MODAL — ENHANCED
+   ============================================================ */
+.share-mode-tabs {
+  display: flex; border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.share-mode-tab {
+  flex: 1; padding: 14px 20px;
+  font-size: 0.62rem; font-weight: 600; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--mid-gray);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: var(--transition); cursor: pointer; background: none; border-left: none; border-right: none; border-top: none;
+}
+.share-mode-tab:hover { color: var(--white); }
+.share-mode-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+.share-hint-bar {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 0.72rem; color: var(--mid-gray);
+  background: rgba(201,169,110,0.05);
+  border: 1px solid rgba(201,169,110,0.12);
+  border-radius: var(--radius-sm); padding: 12px 16px;
+  margin-bottom: 20px; line-height: 1.5;
+}
+.share-section-block {
+  margin-bottom: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.share-section-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.share-section-icon {
+  font-size: 1rem; width: 32px; height: 32px;
+  border-radius: var(--radius-sm);
+  background: rgba(201,169,110,0.08);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.share-section-label {
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--white);
+}
+.share-section-sublabel {
+  font-size: 0.58rem; color: var(--mid-gray); margin-top: 2px;
+}
+.share-toggle-all {
+  font-size: 0.52rem; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--gold); padding: 3px 8px;
+  border: 1px solid rgba(201,169,110,0.2); border-radius: var(--radius-sm);
+  cursor: pointer; transition: var(--transition); background: none;
+}
+.share-toggle-all:hover { background: rgba(201,169,110,0.08); }
+.share-toggle-all + .share-toggle-all { margin-left: 6px; color: var(--mid-gray); border-color: rgba(255,255,255,0.1); }
+.share-section-block .share-checklist { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.share-item-badge {
+  font-size: 0.55rem; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 20px;
+  background: rgba(201,169,110,0.1); color: var(--gold);
+  border: 1px solid rgba(201,169,110,0.2); white-space: nowrap;
+}
+.share-item-badge.green { background: rgba(94,196,122,0.1); color: #5ec47a; border-color: rgba(94,196,122,0.2); }
+.share-nfc-indicator {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--gold); flex-shrink: 0;
+  animation: nfcPulse 1.6s ease-in-out infinite; display: inline-block;
+}
+@keyframes nfcPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.4)} }
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 80px 24px; text-align: center; gap: 16px;
+}
+.empty-state-icon { font-size: 3rem; color: rgba(201,169,110,0.3); }
+.empty-state-title {
+  font-family: var(--font-display); font-size: 1.4rem;
+  font-weight: 300; color: var(--white);
+}
+.empty-state-text { font-size: 0.8rem; color: var(--mid-gray); max-width: 360px; line-height: 1.7; }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast-container { position: fixed; bottom: 32px; right: 32px; z-index: 9000; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--charcoal);
+  border: 1px solid rgba(201,169,110,0.25);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  min-width: 280px;
+  animation: toastIn 0.3s ease-out;
+  box-shadow: var(--shadow-card);
+}
+.toast-icon { font-size: 1rem; color: var(--gold); }
+.toast-msg { font-size: 0.78rem; color: var(--white); }
+@keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+
+/* ============================================================
+   WORD IMPORT SECTION
+   ============================================================ */
+.word-import-zone {
+  border: 1px dashed rgba(201,169,110,0.3);
+  border-radius: var(--radius-md);
+  padding: 28px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; cursor: pointer; transition: var(--transition);
+  text-align: center; background: rgba(201,169,110,0.02);
+}
+.word-import-zone:hover { border-color: var(--gold); background: rgba(201,169,110,0.05); }
+.word-import-icon { font-size: 2.2rem; }
+.word-import-label {
+  font-size: 0.62rem; font-weight: 600; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--gold);
+}
+.word-import-hint { font-size: 0.65rem; color: var(--mid-gray); }
+.word-editor-toolbar {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+.word-toolbar-btn {
+  font-size: 0.7rem; font-weight: 600;
+  color: var(--mid-gray);
+  padding: 5px 10px;
+  border-radius: 3px;
+  transition: var(--transition);
+  border: 1px solid transparent;
+}
+.word-toolbar-btn:hover { color: var(--white); background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.1); }
+.word-toolbar-btn.active { color: var(--gold); border-color: rgba(201,169,110,0.25); background: rgba(201,169,110,0.06); }
+.word-toolbar-sep { width: 1px; background: rgba(255,255,255,0.1); margin: 2px 4px; }
+.word-editor-area {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-sm);
+  color: var(--white);
+  font-size: 0.82rem;
+  padding: 16px;
+  min-height: 320px;
+  outline: none;
+  line-height: 1.8;
+  transition: var(--transition);
+}
+.word-editor-area:focus { border-color: var(--gold); background: rgba(201,169,110,0.02); }
+.word-actions-bar {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  margin-top: 16px; padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.word-filename-badge {
+  font-size: 0.62rem; color: var(--mid-gray);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 6px 12px; border-radius: 30px;
+  display: flex; align-items: center; gap: 6px;
+}
+.word-filename-badge span { color: var(--gold); }
+
+@media (max-width: 768px) {
+  nav { padding: 16px 20px; }
+  .nav-tabs { display: none; }
+  .page-header { padding: 40px 20px 24px; }
+  .card-grid { grid-template-columns: 1fr; padding: 20px; gap: 16px; }
+  .modal-body, .modal-header { padding: 20px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-grid.cols-3 { grid-template-columns: 1fr 1fr; }
+  .vp-hero { flex-direction: column; gap: 20px; padding: 24px; }
+  nav .nav-actions .btn-share span { display:none; }
+  .mobile-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex !important;
+    background: rgba(0,0,0,0.95);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding: 10px 0 16px;
+    z-index: 100;
+  }
+  .mobile-nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    font-size: 0.5rem; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--mid-gray);
+    padding: 6px 4px;
+    transition: var(--transition);
+  }
+  .mobile-nav-btn.active { color: var(--gold); }
+  .mobile-nav-btn-icon { font-size: 1.1rem; }
+  main { padding-top: 70px; padding-bottom: 80px; }
+}
+.mobile-nav { display: none; }
+
+/* ============================================================
+   INVOICE PRINT PREVIEW
+   ============================================================ */
+.invoice-preview {
+  background: var(--white); color: var(--black);
+  border-radius: var(--radius-md);
+  padding: 40px; margin-top: 12px;
+  font-family: var(--font-body);
+}
+.ip-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+.ip-brand { font-family: var(--font-display); font-size: 1.6rem; font-weight: 300; letter-spacing: 0.1em; }
+.ip-pro { color: var(--gold); font-weight: 600; }
+.ip-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: var(--mid-gray); }
+.ip-number { font-size: 0.9rem; font-weight: 600; color: var(--black); }
+.ip-divider { height: 2px; background: linear-gradient(90deg, var(--black), var(--gold), var(--bone)); margin-bottom: 28px; }
+.ip-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+.ip-party-label { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase; color: var(--mid-gray); margin-bottom: 8px; }
+.ip-party-name { font-size: 0.95rem; font-weight: 600; color: var(--black); }
+.ip-party-detail { font-size: 0.78rem; color: #666; margin-top: 2px; line-height: 1.5; }
+.ip-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+.ip-table th {
+  font-size: 0.58rem; font-weight: 700; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--black);
+  padding: 10px 12px; text-align: left;
+  background: var(--bone); border-bottom: 2px solid var(--black);
+}
+.ip-table td { padding: 12px; font-size: 0.8rem; border-bottom: 1px solid var(--bone); color: var(--black); }
+.ip-totals { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.ip-total-row { display: flex; gap: 48px; justify-content: flex-end; }
+.ip-total-lbl { font-size: 0.7rem; color: #666; }
+.ip-total-val { font-size: 0.8rem; font-weight: 600; min-width: 90px; text-align: right; color: var(--black); }
+.ip-grand { font-size: 1.1rem !important; color: var(--black) !important; }
+.ip-grand-lbl { font-weight: 700; color: var(--black) !important; }
+.ip-footer { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--bone); font-size: 0.7rem; color: #999; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ SPLASH -->
+<div id="splash">
+  <div class="splash-line"></div>
+  <h1>MDEA Business Card</h1>
+  <p>Black Edition</p>
+  <div class="splash-divider"></div>
+</div>
+
+<!-- ============================================================ APP -->
+<div id="app">
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">MDEA <span>—</span> Black Edition</div>
+  <div class="nav-tabs" id="navTabs">
+    <button class="nav-tab active" onclick="showSection('profiles')">Profils</button>
+    <button class="nav-tab" onclick="showSection('portfolio')">Portfolio</button>
+    <button class="nav-tab" onclick="showSection('socials')">Réseaux</button>
+    <button class="nav-tab" onclick="showSection('pitches')">Pitch Decks</button>
+    <button class="nav-tab" onclick="showSection('invoices')">Factures</button>
+  </div>
+  <div class="nav-actions">
+    <span id="accountBar" style="display:flex;align-items:center;margin-right:10px"></span>
+    <span id="cloudSyncStatus" style="font-size:0.6rem;color:var(--mid-gray);letter-spacing:0.05em;margin-right:10px;white-space:nowrap"></span>
+    <div style="position:relative">
+      <button class="theme-picker-btn" onclick="toggleThemePicker()" title="Changer le thème" id="themePickerBtn">◑</button>
+      <div class="theme-palette-dropdown" id="themePaletteDropdown">
+        <div class="theme-palette-title">Thème de couleur</div>
+        <div class="theme-swatches">
+          <div class="theme-swatch active" onclick="applyTheme('')" data-theme="">
+            <div class="theme-swatch-dot" style="background:linear-gradient(135deg,#c9a96e,#9a7a48)"></div>
+            <div class="theme-swatch-name">Or Noir</div>
+          </div>
+          <div class="theme-swatch" onclick="applyTheme('silver')" data-theme="silver">
+            <div class="theme-swatch-dot" style="background:linear-gradient(135deg,#b8bec8,#8a9098)"></div>
+            <div class="theme-swatch-name">Argent</div>
+          </div>
+          <div class="theme-swatch" onclick="applyTheme('ruby')" data-theme="ruby">
+            <div class="theme-swatch-dot" style="background:linear-gradient(135deg,#c0314a,#8a1a30)"></div>
+            <div class="theme-swatch-name">Rubis</div>
+          </div>
+          <div class="theme-swatch" onclick="applyTheme('sapphire')" data-theme="sapphire">
+            <div class="theme-swatch-dot" style="background:linear-gradient(135deg,#4a7fc1,#2a528a)"></div>
+            <div class="theme-swatch-name">Saphir</div>
+          </div>
+          <div class="theme-swatch" onclick="applyTheme('emerald')" data-theme="emerald">
+            <div class="theme-swatch-dot" style="background:linear-gradient(135deg,#2e9970,#1a6648)"></div>
+            <div class="theme-swatch-name">Émeraude</div>
+          </div>
+          <div class="theme-swatch" onclick="applyTheme('amethyst')" data-theme="amethyst">
+            <div class="theme-swatch-dot" style="background:linear-gradient(135deg,#9466c8,#6633a0)"></div>
+            <div class="theme-swatch-name">Améthyste</div>
+          </div>
+          <div class="theme-swatch" onclick="applyTheme('copper')" data-theme="copper">
+            <div class="theme-swatch-dot" style="background:linear-gradient(135deg,#c87540,#8a4e1a)"></div>
+            <div class="theme-swatch-name">Cuivre</div>
+          </div>
+          <div class="theme-swatch" onclick="applyTheme('platinum')" data-theme="platinum">
+            <div class="theme-swatch-dot" style="background:linear-gradient(135deg,#9eaab5,#6a8090)"></div>
+            <div class="theme-swatch-name">Platine</div>
+          </div>
+          <div class="theme-swatch" onclick="applyTheme('rose')" data-theme="rose">
+            <div class="theme-swatch-dot" style="background:linear-gradient(135deg,#c86888,#8a3a55)"></div>
+            <div class="theme-swatch-name">Nuit Rosée</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-share" onclick="openShareModal()">⬡ <span>Partager</span></button>
+  </div>
+</nav>
+
+<!-- MOBILE NAV -->
+<div class="mobile-nav" id="mobileNav">
+  <button class="mobile-nav-btn active" onclick="showSection('profiles',this)">
+    <div class="mobile-nav-btn-icon">👤</div>Profils
+  </button>
+  <button class="mobile-nav-btn" onclick="showSection('portfolio',this)">
+    <div class="mobile-nav-btn-icon">🗂</div>Portfolio
+  </button>
+  <button class="mobile-nav-btn" onclick="showSection('socials',this)">
+    <div class="mobile-nav-btn-icon">🔗</div>Réseaux
+  </button>
+  <button class="mobile-nav-btn" onclick="showSection('pitches',this)">
+    <div class="mobile-nav-btn-icon">📄</div>Pitch
+  </button>
+  <button class="mobile-nav-btn" onclick="showSection('invoices',this)">
+    <div class="mobile-nav-btn-icon">📄</div>Factures
+  </button>
+</div>
+
+<!-- ============================================================ MAIN -->
+<main>
+
+  <!-- ============= PROFILES SECTION ============= -->
+  <section id="profiles" class="section active">
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-eyebrow">Gestion des profils</div>
+        <h2 class="page-title">Mes <em>Profils</em></h2>
+      </div>
+      <button class="btn-primary" onclick="openProfileModal()">+ Nouveau Profil</button>
+    </div>
+    <div class="card-grid" id="profileGrid">
+      <!-- Profiles rendered here -->
+      <div class="add-card" onclick="openProfileModal()">
+        <div class="add-card-icon">+</div>
+        <div class="add-card-label">Ajouter un profil</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============= PORTFOLIO SECTION ============= -->
+  <section id="portfolio" class="section">
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-eyebrow">Mes réalisations</div>
+        <h2 class="page-title">Port<em>folio</em></h2>
+      </div>
+      <button class="btn-primary" onclick="openProjectModal()">+ Nouveau Projet</button>
+    </div>
+    <div class="card-grid" id="portfolioGrid">
+      <div class="add-card" onclick="openProjectModal()">
+        <div class="add-card-icon">+</div>
+        <div class="add-card-label">Ajouter un projet</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============= SOCIALS SECTION ============= -->
+  <section id="socials" class="section">
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-eyebrow">Présence digitale</div>
+        <h2 class="page-title">Réseaux <em>Sociaux</em></h2>
+      </div>
+      <button class="btn-primary" onclick="openSocialModal()">+ Ajouter</button>
+    </div>
+    <div class="card-grid" id="socialsGrid">
+      <div class="add-card" onclick="openSocialModal()">
+        <div class="add-card-icon">+</div>
+        <div class="add-card-label">Ajouter un réseau</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============= PITCHES SECTION ============= -->
+  <section id="pitches" class="section">
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-eyebrow">Présentations business</div>
+        <h2 class="page-title">Pitch <em>Decks</em></h2>
+      </div>
+      <button class="btn-primary" onclick="document.getElementById('pitchFileInput').click()">+ Importer un Pitch</button>
+      <input type="file" id="pitchFileInput" accept=".pdf,.ppt,.pptx,.key" style="display:none" onchange="importPitch(event)">
+    </div>
+    <div class="card-grid" id="pitchesGrid">
+      <div class="add-card" onclick="document.getElementById('pitchFileInput').click()">
+        <div class="add-card-icon">📄</div>
+        <div class="add-card-label">Importer depuis le téléphone</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============= INVOICES SECTION ============= -->
+  <section id="invoices" class="section">
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-eyebrow">Documents commerciaux</div>
+        <h2 class="page-title">Factures <em>Proforma</em></h2>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="btn-outline" onclick="openWordImportModal()">📄 Importer Word</button>
+        <button class="btn-primary" onclick="openInvoiceModal()">+ Nouvelle Facture</button>
+      </div>
+    </div>
+    <div class="card-grid" id="invoicesGrid">
+      <div class="add-card" onclick="openInvoiceModal()">
+        <div class="add-card-icon">+</div>
+        <div class="add-card-label">Créer une facture</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+</div><!-- end #app -->
+
+
+<!-- ====================================================== TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+
+<!-- ====================================================== MODAL: PROFILE -->
+<div class="modal-backdrop" id="profileModal">
+  <div class="modal modal-wide">
+    <div class="modal-accent"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title-eyebrow">Profil professionnel</div>
+        <div class="modal-title">Nouveau Profil</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('profileModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Photo -->
+      <div class="form-section-title">Photo & Identité</div>
+      <div class="photo-upload-area" onclick="document.getElementById('profilePhotoInput').click()">
+        <div class="photo-upload-preview" id="profilePhotoPreview">👤</div>
+        <div class="photo-upload-label">Télécharger une photo</div>
+        <div class="photo-upload-hint">JPG, PNG — max 5MB</div>
+      </div>
+      <input type="file" id="profilePhotoInput" accept="image/*" style="display:none" onchange="previewPhoto(event,'profilePhotoPreview')">
+
+      <div class="form-grid" style="margin-top:20px;">
+        <div class="form-group">
+          <label class="form-label">Prénom *</label>
+          <input class="form-input" id="pFirstName" placeholder="Jean-Marc">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nom *</label>
+          <input class="form-input" id="pLastName" placeholder="Dubois">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Titre / Poste *</label>
+          <input class="form-input" id="pTitle" placeholder="CEO & Co-Founder">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Entreprise / Organisation</label>
+          <input class="form-input" id="pCompany" placeholder="MDEA Group">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Secteur d'activité</label>
+          <input class="form-input" id="pSector" placeholder="Finance & Technologie">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Localisation</label>
+          <input class="form-input" id="pLocation" placeholder="Paris, France">
+        </div>
+      </div>
+
+      <!-- Contact -->
+      <div class="form-section-title">Coordonnées</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Email professionnel</label>
+          <input class="form-input" id="pEmail" type="email" placeholder="contact@entreprise.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Téléphone</label>
+          <input class="form-input" id="pPhone" placeholder="+33 6 00 00 00 00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Site web</label>
+          <input class="form-input" id="pWebsite" placeholder="https://monsite.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Adresse</label>
+          <input class="form-input" id="pAddress" placeholder="75001 Paris, France">
+        </div>
+      </div>
+
+      <!-- Bio -->
+      <div class="form-section-title">Présentation</div>
+      <div class="form-group">
+        <label class="form-label">Biographie / Pitch personnel</label>
+        <textarea class="form-textarea" id="pBio" rows="4" placeholder="Entrepreneur passionné avec 15 ans d'expérience dans la finance d'entreprise. Fondateur de 3 startups à succès, expert en levée de fonds et développement stratégique international..."></textarea>
+      </div>
+      <div class="form-group" style="margin-top:16px;">
+        <label class="form-label">Compétences clés (séparées par des virgules)</label>
+        <input class="form-input" id="pSkills" placeholder="Leadership, Finance, M&A, Tech, Marketing Digital">
+      </div>
+
+      <!-- Expériences -->
+      <div class="form-section-title">Expériences Professionnelles</div>
+      <div id="experiencesList"></div>
+      <button class="btn-add-cv-entry" onclick="addCVEntry('experiencesList','exp')">+ Ajouter une expérience</button>
+
+      <!-- Formations -->
+      <div class="form-section-title">Formations & Diplômes</div>
+      <div id="educationList"></div>
+      <button class="btn-add-cv-entry" onclick="addCVEntry('educationList','edu')">+ Ajouter une formation</button>
+
+      <!-- Partenaires -->
+      <div class="form-section-title">Logos Partenaires</div>
+      <div class="form-hint" style="margin-bottom:12px;">Ces logos s'afficheront sur votre profil public. S'ils ne sont pas ajoutés, cette section n'apparaîtra pas.</div>
+      <div class="partners-grid" id="partnersGrid">
+        <div class="partner-logo-add" onclick="document.getElementById('partnerLogoInput').click()">
+          <span>+ Logo</span>
+        </div>
+      </div>
+      <input type="file" id="partnerLogoInput" accept="image/*" style="display:none" onchange="addPartnerLogo(event)">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('profileModal')">Annuler</button>
+      <button class="btn-primary" onclick="saveProfile()">Enregistrer le Profil</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ====================================================== MODAL: VIEW PROFILE -->
+<div class="modal-backdrop" id="viewProfileModal">
+  <div class="modal modal-wide">
+    <div class="modal-accent"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title-eyebrow">Aperçu public</div>
+        <div class="modal-title">Profil Partagé</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('viewProfileModal')">✕</button>
+    </div>
+    <div class="modal-body" id="viewProfileContent"></div>
+  </div>
+</div>
+
+
+<!-- ====================================================== MODAL: EXCHANGE NUMBER (renvoyer son numéro) -->
+<div class="modal-backdrop" id="exchangeModal">
+  <div class="modal">
+    <div class="modal-accent"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title-eyebrow">Échange de contact</div>
+        <div class="modal-title">Renvoyer mon numéro</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('exchangeModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.78rem;color:var(--mid-gray);line-height:1.7;margin-bottom:18px">
+        Entrez votre numéro pour le renvoyer directement à <strong id="exchangeOwnerName" style="color:var(--gold)"></strong> via WhatsApp.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Votre numéro de téléphone</label>
+        <input type="tel" class="form-input" id="exchangeMyPhone" placeholder="+237 6XX XXX XXX">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('exchangeModal')">Annuler</button>
+      <button class="btn-primary" onclick="sendMyNumberBack()">💬 Envoyer via WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ====================================================== MODAL: PROJECT -->
+<div class="modal-backdrop" id="projectModal">
+  <div class="modal">
+    <div class="modal-accent"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title-eyebrow">Portfolio</div>
+        <div class="modal-title">Nouveau Projet</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('projectModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="photo-upload-area" onclick="document.getElementById('projectImageInput').click()" style="margin-bottom:20px;">
+        <div style="font-size:2.5rem;color:rgba(201,169,110,0.4)" id="projectImagePreview">🖼</div>
+        <div class="photo-upload-label">Image du projet</div>
+        <div class="photo-upload-hint">JPG, PNG — image de couverture</div>
+      </div>
+      <input type="file" id="projectImageInput" accept="image/*" style="display:none" onchange="previewProjectImage(event)">
+
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label class="form-label">Nom du Projet *</label>
+          <input class="form-input" id="projTitle" placeholder="Plateforme FinTech B2B">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Catégorie</label>
+          <input class="form-input" id="projCategory" placeholder="Technologie / Finance">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Année</label>
+          <input class="form-input" id="projYear" placeholder="2024">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rôle</label>
+          <input class="form-input" id="projRole" placeholder="Fondateur & Product Owner">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lien URL</label>
+          <input class="form-input" id="projUrl" placeholder="https://projet.com">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea" id="projDesc" placeholder="Solution SaaS permettant aux PME de gérer leur trésorerie en temps réel..."></textarea>
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Technologies / Mots-clés</label>
+          <input class="form-input" id="projTags" placeholder="React, Node.js, IA, B2B, SaaS">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('projectModal')">Annuler</button>
+      <button class="btn-primary" onclick="saveProject()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ====================================================== MODAL: SOCIAL -->
+<div class="modal-backdrop" id="socialModal">
+  <div class="modal">
+    <div class="modal-accent"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title-eyebrow">Présence digitale</div>
+        <div class="modal-title">Ajouter un Réseau</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('socialModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label class="form-label">Plateforme *</label>
+          <select class="form-select form-input" id="socialPlatform">
+            <option value="">— Sélectionner —</option>
+            <option value="LinkedIn">LinkedIn</option>
+            <option value="Twitter / X">Twitter / X</option>
+            <option value="Instagram">Instagram</option>
+            <option value="Facebook">Facebook</option>
+            <option value="YouTube">YouTube</option>
+            <option value="TikTok">TikTok</option>
+            <option value="GitHub">GitHub</option>
+            <option value="Site Web">Site Web Personnel</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nom d'utilisateur / Handle</label>
+          <input class="form-input" id="socialHandle" placeholder="@monprofil">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre d'abonnés / followers</label>
+          <input class="form-input" id="socialFollowers" placeholder="12.5K">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">URL complète *</label>
+          <input class="form-input" id="socialUrl" placeholder="https://linkedin.com/in/monprofil">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('socialModal')">Annuler</button>
+      <button class="btn-primary" onclick="saveSocial()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ====================================================== MODAL: INVOICE -->
+<div class="modal-backdrop" id="invoiceModal">
+  <div class="modal modal-wide">
+    <div class="modal-accent"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title-eyebrow">Document commercial</div>
+        <div class="modal-title">Nouvelle Facture Proforma</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('invoiceModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Numéro de facture</label>
+          <input class="form-input" id="invNumber" placeholder="PRO-2024-001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date d'émission</label>
+          <input class="form-input" id="invDate" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date d'échéance</label>
+          <input class="form-input" id="invDueDate" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Devise</label>
+          <select class="form-select form-input" id="invCurrency">
+            <option value="EUR">EUR — Euro</option>
+            <option value="USD">USD — Dollar</option>
+            <option value="XAF">XAF — FCFA</option>
+            <option value="GBP">GBP — Livre</option>
+            <option value="CAD">CAD — Dollar CA</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section-title">Émetteur</div>
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label class="form-label">Nom de l'entreprise <span style="color:var(--gold)">*</span></label>
+          <input class="form-input" id="invCompanyName" placeholder="Mon Entreprise" oninput="saveCompanyName(this.value)" style="font-size:1rem;font-weight:500;letter-spacing:0.04em">
+          <div class="form-hint">Ce nom s'affiche en titre sur vos factures</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nom / Prénom responsable</label>
+          <input class="form-input" id="invFromName" placeholder="Jean Dupont">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="invFromEmail" placeholder="contact@mdea.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Téléphone</label>
+          <input class="form-input" id="invFromPhone" placeholder="+33 6 00 00 00 00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Adresse</label>
+          <input class="form-input" id="invFromAddress" placeholder="75001 Paris, France">
+        </div>
+      </div>
+
+      <div class="form-section-title">Client</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Nom Client / Société *</label>
+          <input class="form-input" id="invToName" placeholder="Entreprise ABC">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email client</label>
+          <input class="form-input" id="invToEmail" placeholder="client@entreprise.com">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Adresse client</label>
+          <input class="form-input" id="invToAddress" placeholder="Adresse complète du client">
+        </div>
+      </div>
+
+      <div class="form-section-title">Prestations</div>
+      <div id="invoiceItemsList"></div>
+      <button class="btn-add-cv-entry" onclick="addInvoiceItem()" style="margin-bottom:20px;">+ Ajouter une ligne</button>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Remise (%)</label>
+          <input class="form-input" id="invDiscount" type="number" value="0" min="0" max="100" oninput="updateInvoiceTotals()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">TVA (%)</label>
+          <input class="form-input" id="invTax" type="number" value="20" min="0" oninput="updateInvoiceTotals()">
+        </div>
+      </div>
+
+      <div class="invoice-total-row" id="invoiceTotalsDisplay" style="margin-top:20px;"></div>
+
+      <div class="form-group" style="margin-top:20px;">
+        <label class="form-label">Notes / Conditions</label>
+        <textarea class="form-textarea" id="invNotes" placeholder="Paiement à 30 jours. Virement bancaire. Numéro de compte IBAN : ..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('invoiceModal')">Annuler</button>
+      <button class="btn-ghost" onclick="previewInvoice()">👁 Aperçu</button>
+      <button class="btn-primary" onclick="saveInvoice()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ====================================================== MODAL: INVOICE PREVIEW -->
+<div class="modal-backdrop" id="invoicePreviewModal">
+  <div class="modal modal-wide">
+    <div class="modal-accent"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title-eyebrow">Aperçu document</div>
+        <div class="modal-title">Facture Proforma</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('invoicePreviewModal')">✕</button>
+    </div>
+    <div class="modal-body" id="invoicePreviewContent"></div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('invoicePreviewModal')">Fermer</button>
+      <button class="btn-ghost" onclick="shareCurrentInvoiceNFC()">⬡ Partager NFC</button>
+      <button class="btn-ghost" onclick="printInvoice()">🖨 Imprimer</button>
+      <button class="btn-primary" onclick="exportInvoicePDF()">⬇ Télécharger PDF</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ====================================================== MODAL: WORD IMPORT -->
+<div class="modal-backdrop" id="wordImportModal">
+  <div class="modal modal-wide">
+    <div class="modal-accent"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title-eyebrow">Facture officielle</div>
+        <div class="modal-title">Importer & Modifier Word</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('wordImportModal')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Step 1: import zone (shown when no file) -->
+      <div id="wordImportStep1">
+        <div class="word-import-zone" onclick="document.getElementById('wordDocInput').click()">
+          <div class="word-import-icon">📄</div>
+          <div class="word-import-label">Glisser ou cliquer pour importer</div>
+          <div class="word-import-hint">Format .docx — votre facture officielle d'entreprise</div>
+        </div>
+        <input type="file" id="wordDocInput" accept=".docx,.doc,.txt,.rtf" style="display:none" onchange="loadWordFile(event)">
+        <div style="margin-top:16px;padding:14px 16px;background:rgba(201,169,110,0.04);border:1px solid rgba(201,169,110,0.12);border-radius:var(--radius-sm)">
+          <div style="font-size:0.6rem;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Comment ça marche</div>
+          <div style="font-size:0.75rem;color:var(--mid-gray);line-height:1.8">
+            1. Importez votre facture Word (.docx) — le texte est extrait et affiché dans l'éditeur<br>
+            2. Modifiez le contenu directement dans l'éditeur riche<br>
+            3. Exportez en PDF ou partagez directement par lien / WhatsApp / email
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: editor (shown after import) -->
+      <div id="wordImportStep2" style="display:none">
+        <div id="wordFileBadgeBar" class="word-actions-bar" style="margin-top:0;padding-top:0;border-top:none;margin-bottom:14px"></div>
+
+        <!-- Toolbar -->
+        <div class="word-editor-toolbar">
+          <button class="word-toolbar-btn" onclick="wfmt('bold')" title="Gras"><b>B</b></button>
+          <button class="word-toolbar-btn" onclick="wfmt('italic')" title="Italique"><i>I</i></button>
+          <button class="word-toolbar-btn" onclick="wfmt('underline')" title="Souligné"><u>U</u></button>
+          <div class="word-toolbar-sep"></div>
+          <button class="word-toolbar-btn" onclick="wfmt('justifyLeft')" title="Gauche">⬅</button>
+          <button class="word-toolbar-btn" onclick="wfmt('justifyCenter')" title="Centre">☰</button>
+          <button class="word-toolbar-btn" onclick="wfmt('justifyRight')" title="Droite">➡</button>
+          <div class="word-toolbar-sep"></div>
+          <button class="word-toolbar-btn" onclick="wfmt('insertUnorderedList')" title="Liste">• —</button>
+          <button class="word-toolbar-btn" onclick="wfmt('insertOrderedList')" title="Liste numérotée">1.</button>
+          <div class="word-toolbar-sep"></div>
+          <select class="word-toolbar-btn" onchange="wfmt('fontSize',this.value);this.value=''" style="min-width:60px;cursor:pointer">
+            <option value="">Taille</option>
+            <option value="1">Petit</option>
+            <option value="3">Normal</option>
+            <option value="5">Grand</option>
+            <option value="7">Titre</option>
+          </select>
+          <div class="word-toolbar-sep"></div>
+          <button class="word-toolbar-btn" onclick="wfmt('foreColor','var(--gold-dark)')" title="Couleur accent" style="color:var(--gold)">A</button>
+          <button class="word-toolbar-btn" onclick="wfmt('foreColor','#000000')" title="Couleur noire" style="color:#888">A</button>
+          <div class="word-toolbar-sep"></div>
+          <button class="word-toolbar-btn" onclick="wInsertTable()" title="Tableau">⊞</button>
+          <div class="word-toolbar-sep"></div>
+          <button class="word-toolbar-btn" onclick="wfmt('undo')">↩</button>
+          <button class="word-toolbar-btn" onclick="wfmt('redo')">↪</button>
+        </div>
+
+        <div class="word-editor-area" id="wordEditorArea" contenteditable="true"
+          style="background:#fff;color:#111;min-height:400px;border-radius:var(--radius-sm);padding:28px 32px;font-family:var(--font-body);line-height:1.9;"></div>
+
+        <div class="word-actions-bar">
+          <button class="btn-primary" onclick="exportWordToPDF()">⬇ Convertir en vrai PDF</button>
+          <button class="btn-outline" onclick="shareWordDocFile()">📤 Partager le PDF (fichier)</button>
+          <button class="btn-outline" onclick="shareWordDocNFC()">⬡ Partager NFC</button>
+          <button class="btn-ghost" onclick="shareWordDoc()">💬 WhatsApp / Email (texte)</button>
+          <button class="btn-ghost" onclick="printWordDoc()">🖨 Imprimer</button>
+          <button class="btn-ghost" onclick="resetWordImport()" style="margin-left:auto">↺ Nouveau</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ====================================================== MODAL: SHARE -->
+<div class="modal-backdrop" id="shareModal">
+  <div class="modal modal-wide">
+    <div class="modal-accent"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title-eyebrow">Partage NFC / Lien</div>
+        <div class="modal-title">Partager ma Carte</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('shareModal')">✕</button>
+    </div>
+    <div class="modal-body share-modal-body" style="padding:0">
+
+      <!-- Mode tabs -->
+      <div class="share-mode-tabs" id="shareModeTabs">
+        <button class="share-mode-tab active" onclick="switchShareMode('nfc',this)">⬡ NFC / QR</button>
+        <button class="share-mode-tab" onclick="switchShareMode('pdf',this)">📄 Export PDF</button>
+      </div>
+
+      <!-- NFC MODE -->
+      <div id="shareModeNFC" style="padding:28px 32px">
+
+        <!-- Hint -->
+        <div class="share-hint-bar">
+          <span style="color:var(--gold)">💡</span>
+          Cochez uniquement ce que vous souhaitez partager ci-dessous (profil, portfolio, réseaux, pitchs, factures). Le bouton <strong>"Envoyer ma sélection"</strong> transmet en un geste les vrais fichiers des éléments cochés — rien d'autre. La carte NFC physique ne peut porter qu'un petit lien ou un contact (mémoire limitée du tag).
+        </div>
+
+        <!-- PROFIL -->
+        <div class="share-section-block">
+          <div class="share-section-head">
+            <div class="share-section-icon">👤</div>
+            <div>
+              <div class="share-section-label">Profil</div>
+              <div class="share-section-sublabel">Choisissez quel profil partager</div>
+            </div>
+          </div>
+          <div class="share-checklist" id="shareProfileList"></div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.7rem;color:var(--mid-gray);margin:12px 0 4px;cursor:pointer">
+            <input type="checkbox" id="phoneOnlyToggle" style="accent-color:var(--gold)">
+            📞 Partager uniquement le numéro de téléphone (contact rapide, sans le reste du profil)
+          </label>
+          <button class="btn-ghost" style="font-size:0.68rem;margin-top:4px" onclick="quickShareSelectedProfilePhone()">📇 Envoyer instantanément mon numéro (vCard / WhatsApp)</button>
+        </div>
+
+        <!-- PORTFOLIO -->
+        <div class="share-section-block">
+          <div class="share-section-head">
+            <div class="share-section-icon">🗂</div>
+            <div>
+              <div class="share-section-label">Portfolio</div>
+              <div class="share-section-sublabel">Sélectionnez les projets à exposer</div>
+            </div>
+            <button class="share-toggle-all" onclick="shareToggleAll('sharePortfolioList', true)">Tout</button>
+            <button class="share-toggle-all" onclick="shareToggleAll('sharePortfolioList', false)">Rien</button>
+          </div>
+          <div class="share-checklist" id="sharePortfolioList"></div>
+        </div>
+
+        <!-- RÉSEAUX -->
+        <div class="share-section-block">
+          <div class="share-section-head">
+            <div class="share-section-icon">🔗</div>
+            <div>
+              <div class="share-section-label">Réseaux Sociaux</div>
+              <div class="share-section-sublabel">Choisissez les liens à inclure</div>
+            </div>
+            <button class="share-toggle-all" onclick="shareToggleAll('shareSocialList', true)">Tout</button>
+            <button class="share-toggle-all" onclick="shareToggleAll('shareSocialList', false)">Rien</button>
+          </div>
+          <div class="share-checklist" id="shareSocialList"></div>
+        </div>
+
+        <!-- PITCH DECKS -->
+        <div class="share-section-block">
+          <div class="share-section-head">
+            <div class="share-section-icon">📊</div>
+            <div>
+              <div class="share-section-label">Pitch Decks</div>
+              <div class="share-section-sublabel">Partagez un pitch spécifique ou tous</div>
+            </div>
+            <button class="share-toggle-all" onclick="shareToggleAll('sharePitchList', true)">Tout</button>
+            <button class="share-toggle-all" onclick="shareToggleAll('sharePitchList', false)">Rien</button>
+          </div>
+          <div class="share-checklist" id="sharePitchList"></div>
+        </div>
+
+        <!-- FACTURES -->
+        <div class="share-section-block">
+          <div class="share-section-head">
+            <div class="share-section-icon">🧾</div>
+            <div>
+              <div class="share-section-label">Factures</div>
+              <div class="share-section-sublabel">Partagez une facture proforma ou Word importé</div>
+            </div>
+            <button class="share-toggle-all" onclick="shareToggleAll('shareInvoiceList', true)">Tout</button>
+            <button class="share-toggle-all" onclick="shareToggleAll('shareInvoiceList', false)">Rien</button>
+          </div>
+          <div class="share-checklist" id="shareInvoiceList"></div>
+        </div>
+
+        <!-- QR Code -->
+        <div style="margin-top:8px">
+          <div class="share-option-title">Code QR — aperçu</div>
+          <div class="share-qr-wrap">
+            <div class="share-qr-placeholder">
+              <div class="qr-grid" id="qrGrid"></div>
+              <div style="font-size:0.7rem;color:var(--mid-gray);margin-top:8px;">MDEA Business Card</div>
+            </div>
+          </div>
+          <div class="share-link-box">
+            <input class="share-link-input" id="shareLinkInput" value='Cliquez sur "Programmer la carte NFC" pour générer le lien réel' readonly>
+            <button class="btn-primary" onclick="copyShareLink()">Copier</button>
+          </div>
+        </div>
+
+        <!-- NFC Action -->
+        <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-outline" onclick="activateNFC()" style="flex:1">⬡ Programmer la carte NFC (sélection)</button>
+          <button class="btn-primary" onclick="shareViaLink()" style="flex:1">📤 Envoyer ma sélection (fichiers réels)</button>
+        </div>
+      </div>
+
+      <!-- PDF MODE -->
+      <div id="shareModePDF" style="display:none;padding:28px 32px">
+
+        <div class="share-hint-bar">
+          <span style="color:var(--gold)">📄</span>
+          Convertissez votre document Word importé en PDF, puis partagez-le via votre carte NFC.
+        </div>
+
+        <!-- Word importé -->
+        <div class="share-section-block">
+          <div class="share-section-head">
+            <div class="share-section-icon">📝</div>
+            <div>
+              <div class="share-section-label">Document Word importé</div>
+              <div class="share-section-sublabel">Facture officielle importée depuis .docx</div>
+            </div>
+          </div>
+          <div id="pdfWordDocStatus" style="padding:14px 0">
+            <div style="font-size:0.75rem;color:var(--mid-gray);padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:var(--radius-sm)">
+              Aucun document Word importé. Allez dans <strong style="color:var(--gold)">Factures → Importer Word</strong> pour charger votre document.
+            </div>
+          </div>
+        </div>
+
+        <!-- Factures proforma -->
+        <div class="share-section-block">
+          <div class="share-section-head">
+            <div class="share-section-icon">🧾</div>
+            <div>
+              <div class="share-section-label">Facture Proforma</div>
+              <div class="share-section-sublabel">Générée dans l'application</div>
+            </div>
+          </div>
+          <div class="share-checklist" id="pdfInvoiceList"></div>
+        </div>
+
+        <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-primary" onclick="exportSelectedToPDF()" style="flex:1">⬇ Convertir & Télécharger le vrai PDF</button>
+          <button class="btn-outline" onclick="shareSelectedPDFviaLink()" style="flex:1">📤 Partager le fichier PDF</button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================================ JAVASCRIPT -->
+<script>
+// ============================================================
+// DATA STORE
+// ============================================================
+const store = {
+  profiles: [],
+  projects: [],
+  socials: [],
+  pitches: [],
+  invoices: [],
+  editingProfileId: null,
+  projectImageData: null,
+  partnerLogos: [],
+  profilePhotoData: null,
+  invoiceItems: [],
+  invoicePreviewData: null,
+  companyName: localStorage.getItem('mdea_company_name') || ''
+};
+
+// ============================================================
+// COMPANY NAME — persisted
+// ============================================================
+function saveCompanyName(val) {
+  store.companyName = val.trim();
+  localStorage.setItem('mdea_company_name', store.companyName);
+  scheduleCloudSave();
+}
+
+// ============================================================
+// PERSISTANCE CLOUD (Netlify Blobs, via netlify/functions) — liée
+// au COMPTE connecté (Netlify Identity), et non plus à un identifiant
+// anonyme stocké dans le navigateur. Les données suivent donc
+// l'utilisateur d'un appareil à l'autre dès qu'il se connecte.
+//
+// Une seule requête écrit les deux copies côté serveur :
+//  - owners/{uid}/data.json        → COMPLÈTE (avec factures), privée,
+//                                     lisible uniquement par le propriétaire
+//                                     (vérifié par le token Identity).
+//  - public-cards/{uid}/card.json  → SANS les factures, lisible par
+//                                     tous via une fonction publique.
+// ============================================================
+function getOwnerId() {
+  if (!currentUser) throw new Error('Utilisateur non connecté.');
+  return currentUser.id;
+}
+
+let cloudSaveTimer = null;
+function scheduleCloudSave() {
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = setTimeout(saveStoreToCloud, 1500);
+}
+
+async function saveStoreToCloud() {
+  if (!currentUser) return; // pas encore authentifié, rien à faire
+  try {
+    const fullSnapshot = {
+      profiles: store.profiles,
+      projects: store.projects,
+      socials: store.socials,
+      pitches: store.pitches,
+      invoices: store.invoices,
+      companyName: store.companyName,
+      savedAt: Date.now()
+    };
+    const publicSnapshot = {
+      profiles: store.profiles,
+      projects: store.projects,
+      socials: store.socials,
+      pitches: store.pitches,
+      companyName: store.companyName,
+      savedAt: Date.now()
+    };
+
+    await NetlifyAuth.authedFetch('/.netlify/functions/save-data', {
+      method: 'POST',
+      body: JSON.stringify({ full: fullSnapshot, public: publicSnapshot })
+    });
+
+    document.getElementById('cloudSyncStatus')?.replaceChildren(document.createTextNode('☁ Sauvegardé'));
+  } catch (e) {
+    console.error('Erreur de sauvegarde cloud :', e);
+    document.getElementById('cloudSyncStatus')?.replaceChildren(document.createTextNode('⚠ Sauvegarde échouée'));
+  }
+}
+
+async function loadStoreFromCloud() {
+  try {
+    const res = await NetlifyAuth.authedFetch('/.netlify/functions/load-data');
+    if (res.status === 404) return; // rien à charger la première fois — normal
+    if (!res.ok) throw new Error('http ' + res.status);
+    const data = await res.json();
+    store.profiles = data.profiles || [];
+    store.projects = data.projects || [];
+    store.socials  = data.socials  || [];
+    store.pitches  = data.pitches  || [];
+    store.invoices = data.invoices || [];
+    if (data.companyName) {
+      store.companyName = data.companyName;
+      localStorage.setItem('mdea_company_name', data.companyName);
+    }
+    renderProfiles();
+    renderProjects();
+    renderSocials();
+    renderPitches();
+    renderInvoices();
+  } catch (e) {
+    // Rien à charger la première fois (fichier inexistant) — normal.
+  }
+}
+
+// Affiche le lien public de la carte (tondomaine.com/{username}) et
+// le bouton de déconnexion dans le bandeau du haut, une fois l'auth prête.
+async function initAccountBar() {
+  await authReady;
+  const bar = document.getElementById('accountBar');
+  if (!bar) return;
+  const url = currentUsername ? `${window.location.origin}/${currentUsername}` : null;
+  bar.innerHTML = `
+    ${url ? `<a href="${url}" target="_blank" style="color:var(--gold);font-size:0.7rem;text-decoration:none">🔗 ${url}</a>` : ''}
+    <span onclick="NetlifyAuth.logout().then(()=>window.location.href='/login')" style="cursor:pointer;font-size:0.65rem;color:var(--mid-gray);margin-left:14px;text-decoration:underline">Déconnexion</span>
+  `;
+}
+
+// Sauvegarde automatique : dès qu'une des listes affichées à l'écran
+// change (ajout/suppression/édition d'un profil, projet, pitch, etc.),
+// on planifie un envoi vers le cloud 1.5s plus tard (regroupe les
+// changements rapprochés en une seule sauvegarde).
+function initAutosave() {
+  ['profileGrid','portfolioGrid','socialsGrid','pitchesGrid','invoicesGrid'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) new MutationObserver(scheduleCloudSave).observe(el, { childList: true, subtree: true });
+  });
+  // Filet de sécurité : sauvegarde immédiate si l'onglet se ferme ou passe en arrière-plan
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') saveStoreToCloud();
+  });
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showSection(id, mobileBtn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    t.classList.toggle('active', t.textContent.toLowerCase().includes(id.slice(0,4).toLowerCase()));
+  });
+  if (mobileBtn) {
+    document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+    mobileBtn.classList.add('active');
+  } else {
+    const tabMap = {profiles:0,portfolio:1,socials:2,pitches:3,invoices:4};
+    const idx = tabMap[id];
+    document.querySelectorAll('.mobile-nav-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+  }
+}
+
+// ============================================================
+// MODAL HELPERS
+// ============================================================
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.querySelectorAll('.modal-backdrop').forEach(m => {
+  m.addEventListener('click', e => { if(e.target === m) closeModal(m.id); });
+});
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg, icon='✓') {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<div class="toast-icon">${icon}</div><div class="toast-msg">${msg}</div>`;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ============================================================
+// PHOTO PREVIEW
+// ============================================================
+function previewPhoto(event, previewId) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    store.profilePhotoData = e.target.result;
+    const el = document.getElementById(previewId);
+    el.innerHTML = `<img src="${e.target.result}" alt="Photo">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function previewProjectImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    store.projectImageData = e.target.result;
+    document.getElementById('projectImagePreview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100px;object-fit:cover;border-radius:8px;" alt="">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ============================================================
+// PARTNER LOGOS
+// ============================================================
+function addPartnerLogo(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    store.partnerLogos.push(e.target.result);
+    renderPartnerLogos();
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function renderPartnerLogos() {
+  const grid = document.getElementById('partnersGrid');
+  grid.innerHTML = '';
+  store.partnerLogos.forEach((logo, i) => {
+    grid.innerHTML += `
+      <div class="partner-logo-item">
+        <img class="partner-logo-img" src="${logo}" alt="Partner ${i+1}">
+        <div class="partner-logo-remove" onclick="removePartnerLogo(${i})">✕</div>
+      </div>`;
+  });
+  grid.innerHTML += `<div class="partner-logo-add" onclick="document.getElementById('partnerLogoInput').click()"><span>+ Logo</span></div>`;
+}
+
+function removePartnerLogo(index) {
+  store.partnerLogos.splice(index, 1);
+  renderPartnerLogos();
+}
+
+// ============================================================
+// CV ENTRIES (experience / education)
+// ============================================================
+let cvEntryCounters = { exp: 0, edu: 0 };
+function addCVEntry(listId, type) {
+  const id = `${type}_${Date.now()}`;
+  const container = document.getElementById(listId);
+  const el = document.createElement('div');
+  el.className = 'cv-entry';
+  el.id = `entry_${id}`;
+  if (type === 'exp') {
+    el.innerHTML = `
+      <div class="form-grid" style="margin-bottom:0">
+        <div class="form-group"><label class="form-label">Poste *</label><input class="form-input" id="${id}_title" placeholder="Directeur Général"></div>
+        <div class="form-group"><label class="form-label">Entreprise *</label><input class="form-input" id="${id}_org" placeholder="MDEA Group"></div>
+        <div class="form-group"><label class="form-label">Période</label><input class="form-input" id="${id}_date" placeholder="Jan 2020 — Présent"></div>
+        <div class="form-group"><label class="form-label">Lieu</label><input class="form-input" id="${id}_loc" placeholder="Paris, France"></div>
+        <div class="form-group form-full"><label class="form-label">Description</label><textarea class="form-textarea" id="${id}_desc" rows="2" placeholder="Responsable de la stratégie globale..."></textarea></div>
+      </div>
+      <button class="btn-danger" style="margin-top:10px" onclick="removeCVEntry('entry_${id}')">− Supprimer</button>`;
+  } else {
+    el.innerHTML = `
+      <div class="form-grid" style="margin-bottom:0">
+        <div class="form-group"><label class="form-label">Diplôme / Certification *</label><input class="form-input" id="${id}_title" placeholder="MBA Finance"></div>
+        <div class="form-group"><label class="form-label">Institution *</label><input class="form-input" id="${id}_org" placeholder="HEC Paris"></div>
+        <div class="form-group"><label class="form-label">Année</label><input class="form-input" id="${id}_date" placeholder="2015 — 2017"></div>
+        <div class="form-group"><label class="form-label">Spécialisation</label><input class="form-input" id="${id}_loc" placeholder="Finance d'entreprise"></div>
+        <div class="form-group form-full"><label class="form-label">Mention / Notes</label><textarea class="form-textarea" id="${id}_desc" rows="2" placeholder="Mention Très Bien. Major de promotion..."></textarea></div>
+      </div>
+      <button class="btn-danger" style="margin-top:10px" onclick="removeCVEntry('entry_${id}')">− Supprimer</button>`;
+  }
+  container.appendChild(el);
+}
+function removeCVEntry(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function getCVEntries(listId) {
+  const entries = [];
+  document.getElementById(listId).querySelectorAll('.cv-entry').forEach(el => {
+    const prefix = el.id.replace('entry_', '');
+    const title = el.querySelector(`[id$="_title"]`)?.value || '';
+    const org   = el.querySelector(`[id$="_org"]`)?.value || '';
+    const date  = el.querySelector(`[id$="_date"]`)?.value || '';
+    const loc   = el.querySelector(`[id$="_loc"]`)?.value || '';
+    const desc  = el.querySelector(`[id$="_desc"]`)?.value || '';
+    if (title) entries.push({ title, org, date, loc, desc });
+  });
+  return entries;
+}
+
+// ============================================================
+// PROFILES
+// ============================================================
+function openProfileModal(id) {
+  store.editingProfileId = id || null;
+  store.profilePhotoData = null;
+  store.partnerLogos = [];
+  // Clear form
+  ['pFirstName','pLastName','pTitle','pCompany','pSector','pLocation',
+   'pEmail','pPhone','pWebsite','pAddress','pBio','pSkills'].forEach(f => {
+    document.getElementById(f).value = '';
+  });
+  document.getElementById('profilePhotoPreview').innerHTML = '👤';
+  document.getElementById('experiencesList').innerHTML = '';
+  document.getElementById('educationList').innerHTML = '';
+  renderPartnerLogos();
+
+  if (id) {
+    const p = store.profiles.find(x => x.id === id);
+    if (p) {
+      document.getElementById('pFirstName').value = p.firstName || '';
+      document.getElementById('pLastName').value  = p.lastName  || '';
+      document.getElementById('pTitle').value     = p.title     || '';
+      document.getElementById('pCompany').value   = p.company   || '';
+      document.getElementById('pSector').value    = p.sector    || '';
+      document.getElementById('pLocation').value  = p.location  || '';
+      document.getElementById('pEmail').value     = p.email     || '';
+      document.getElementById('pPhone').value     = p.phone     || '';
+      document.getElementById('pWebsite').value   = p.website   || '';
+      document.getElementById('pAddress').value   = p.address   || '';
+      document.getElementById('pBio').value       = p.bio       || '';
+      document.getElementById('pSkills').value    = (p.skills||[]).join(', ');
+      if (p.photo) {
+        store.profilePhotoData = p.photo;
+        document.getElementById('profilePhotoPreview').innerHTML = `<img src="${p.photo}" alt="">`;
+      }
+      store.partnerLogos = [...(p.partnerLogos || [])];
+      renderPartnerLogos();
+    }
+  }
+  openModal('profileModal');
+}
+
+function saveProfile() {
+  const firstName = document.getElementById('pFirstName').value.trim();
+  const lastName  = document.getElementById('pLastName').value.trim();
+  const title     = document.getElementById('pTitle').value.trim();
+  if (!firstName || !lastName || !title) { toast('Prénom, Nom et Titre sont requis','⚠'); return; }
+
+  const profile = {
+    id:          store.editingProfileId || Date.now().toString(),
+    firstName,
+    lastName,
+    title,
+    company:     document.getElementById('pCompany').value.trim(),
+    sector:      document.getElementById('pSector').value.trim(),
+    location:    document.getElementById('pLocation').value.trim(),
+    email:       document.getElementById('pEmail').value.trim(),
+    phone:       document.getElementById('pPhone').value.trim(),
+    website:     document.getElementById('pWebsite').value.trim(),
+    address:     document.getElementById('pAddress').value.trim(),
+    bio:         document.getElementById('pBio').value.trim(),
+    skills:      document.getElementById('pSkills').value.split(',').map(s=>s.trim()).filter(Boolean),
+    photo:       store.profilePhotoData,
+    partnerLogos:[...store.partnerLogos],
+    experiences: getCVEntries('experiencesList'),
+    education:   getCVEntries('educationList'),
+    active:      store.editingProfileId ? (store.profiles.find(x=>x.id===store.editingProfileId)||{}).active : store.profiles.length === 0
+  };
+
+  if (store.editingProfileId) {
+    const idx = store.profiles.findIndex(x => x.id === store.editingProfileId);
+    if (idx >= 0) store.profiles[idx] = profile;
+  } else {
+    store.profiles.push(profile);
+  }
+
+  closeModal('profileModal');
+  renderProfiles();
+  toast('Profil enregistré avec succès');
+}
+
+function renderProfiles() {
+  const grid = document.getElementById('profileGrid');
+  let html = '';
+  store.profiles.forEach(p => {
+    const photo = p.photo ? `<img src="${p.photo}" alt="">` : `👤`;
+    const initials = (p.firstName[0]||'') + (p.lastName[0]||'');
+    html += `
+    <div class="card profile-card">
+      <div class="card-accent"></div>
+      <div class="profile-card-header">
+        <div class="profile-photo">${photo}</div>
+        <div class="profile-info-brief">
+          <div class="profile-name">${p.firstName} ${p.lastName}</div>
+          <div class="profile-title">${p.title}</div>
+          ${p.company ? `<div class="profile-company">${p.company}</div>` : ''}
+        </div>
+      </div>
+      <div class="profile-card-body">
+        <div class="profile-tag-row">
+          ${p.sector ? `<span class="tag gold">${p.sector}</span>` : ''}
+          ${p.location ? `<span class="tag">📍 ${p.location}</span>` : ''}
+          ${p.skills.slice(0,3).map(s=>`<span class="tag">${s}</span>`).join('')}
+        </div>
+        ${p.bio ? `<div class="profile-bio">${p.bio.substring(0,150)}${p.bio.length>150?'…':''}</div>` : ''}
+      </div>
+      <div class="profile-card-footer">
+        ${p.active ? '<span class="profile-active-badge">● Actif</span>' : '<button class="btn-ghost" onclick="setActiveProfile(\''+p.id+'\')">Définir actif</button>'}
+        <div style="display:flex;gap:8px">
+          <button class="btn-icon" onclick="viewProfile('${p.id}')" title="Aperçu">👁</button>
+          ${p.phone ? `<button class="btn-icon" onclick="quickSharePhone('${p.id}')" title="Partager uniquement le numéro">📞</button>` : ''}
+          <button class="btn-icon" onclick="openProfileModal('${p.id}')" title="Modifier">✎</button>
+          <button class="btn-icon" onclick="deleteProfile('${p.id}')" title="Supprimer" style="color:#e05050">✕</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += `<div class="add-card" onclick="openProfileModal()"><div class="add-card-icon">+</div><div class="add-card-label">Ajouter un profil</div></div>`;
+  grid.innerHTML = html;
+}
+
+function setActiveProfile(id) {
+  store.profiles.forEach(p => p.active = p.id === id);
+  renderProfiles();
+  toast('Profil actif mis à jour');
+}
+function deleteProfile(id) {
+  if (!confirm('Supprimer ce profil ?')) return;
+  store.profiles = store.profiles.filter(p => p.id !== id);
+  renderProfiles();
+  toast('Profil supprimé','✕');
+}
+
+function viewProfile(id) {
+  const p = store.profiles.find(x => x.id === id);
+  if (!p) return;
+  const socials = store.socials;
+  const projects = store.projects;
+
+  let html = `<div class="view-profile-page">`;
+
+  // Hero
+  const photo = p.photo ? `<img src="${p.photo}" alt="">` : '👤';
+  html += `<div class="vp-hero">
+    <div class="vp-photo">${photo}</div>
+    <div class="vp-info">
+      <div class="vp-name">${p.firstName} ${p.lastName}</div>
+      <div class="vp-title">${p.title}</div>
+      ${p.company ? `<div class="vp-company">${p.company}${p.location?' · '+p.location:''}</div>` : ''}
+      <div class="vp-contact-chips">
+        ${p.email ? `<div class="vp-chip">✉ <a href="mailto:${p.email}">${p.email}</a></div>` : ''}
+        ${p.phone ? `<div class="vp-chip">📞 <a href="tel:${p.phone}">${p.phone}</a></div>` : ''}
+        ${p.website ? `<div class="vp-chip">🔗 <a href="${p.website}" target="_blank">Site Web</a></div>` : ''}
+      </div>
+      ${p.phone ? `<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+        <button class="btn-outline" style="font-size:0.68rem" onclick="downloadVCard('${p.id}')">💾 Enregistrer le contact</button>
+        <button class="btn-primary" style="font-size:0.68rem" onclick="openExchangeModal('${p.phone}','${(p.firstName+' '+p.lastName).replace(/'/g,"\\'")}')">🔄 Renvoyer mon numéro</button>
+      </div>` : ''}
+    </div>
+  </div>`;
+
+  // Bio
+  if (p.bio) {
+    html += `<div class="vp-block"><div class="vp-block-title">À propos</div><div class="vp-bio">${p.bio}</div></div>`;
+  }
+
+  // Skills
+  if (p.skills && p.skills.length > 0) {
+    html += `<div class="vp-block"><div class="vp-block-title">Compétences Clés</div>
+      <div class="vp-skills">${p.skills.map(s=>`<span class="vp-skill">${s}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  // Experiences
+  if (p.experiences && p.experiences.length > 0) {
+    html += `<div class="vp-block"><div class="vp-block-title">Expériences Professionnelles</div><div class="vp-timeline">`;
+    p.experiences.forEach(e => {
+      html += `<div class="vp-timeline-item">
+        <div class="vp-timeline-dot">💼</div>
+        <div class="vp-timeline-content">
+          <div class="vp-timeline-title">${e.title}</div>
+          <div class="vp-timeline-org">${e.org}${e.loc?' · '+e.loc:''}</div>
+          ${e.date ? `<div class="vp-timeline-date">${e.date}</div>` : ''}
+          ${e.desc ? `<div class="vp-timeline-desc">${e.desc}</div>` : ''}
+        </div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  // Education
+  if (p.education && p.education.length > 0) {
+    html += `<div class="vp-block"><div class="vp-block-title">Formations & Diplômes</div><div class="vp-timeline">`;
+    p.education.forEach(e => {
+      html += `<div class="vp-timeline-item">
+        <div class="vp-timeline-dot">🎓</div>
+        <div class="vp-timeline-content">
+          <div class="vp-timeline-title">${e.title}</div>
+          <div class="vp-timeline-org">${e.org}${e.loc?' — '+e.loc:''}</div>
+          ${e.date ? `<div class="vp-timeline-date">${e.date}</div>` : ''}
+          ${e.desc ? `<div class="vp-timeline-desc">${e.desc}</div>` : ''}
+        </div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  // Socials
+  if (socials.length > 0) {
+    html += `<div class="vp-block"><div class="vp-block-title">Réseaux Sociaux</div><div class="vp-socials">`;
+    socials.forEach(s => {
+      html += `<a href="${s.url}" target="_blank" class="vp-social-btn">${getSocialIcon(s.platform)} ${s.handle || s.platform}</a>`;
+    });
+    html += `</div></div>`;
+  }
+
+  // Partners
+  if (p.partnerLogos && p.partnerLogos.length > 0) {
+    html += `<div class="vp-block"><div class="vp-block-title">Partenaires & Collaborateurs</div>
+      <div class="vp-partners">${p.partnerLogos.map(l=>`<img class="vp-partner-logo" src="${l}" alt="Partner">`).join('')}</div>
+    </div>`;
+  }
+
+  html += `</div>`;
+  document.getElementById('viewProfileContent').innerHTML = html;
+  openModal('viewProfileModal');
+}
+
+// ============================================================
+// PROJECTS
+// ============================================================
+function openProjectModal(id) {
+  store.projectImageData = null;
+  document.getElementById('projectImagePreview').innerHTML = '🖼';
+  ['projTitle','projCategory','projYear','projRole','projUrl','projDesc','projTags'].forEach(f => {
+    document.getElementById(f).value = '';
+  });
+  openModal('projectModal');
+}
+
+function saveProject() {
+  const title = document.getElementById('projTitle').value.trim();
+  if (!title) { toast('Le nom du projet est requis','⚠'); return; }
+  const project = {
+    id:       Date.now().toString(),
+    title,
+    category: document.getElementById('projCategory').value.trim(),
+    year:     document.getElementById('projYear').value.trim(),
+    role:     document.getElementById('projRole').value.trim(),
+    url:      document.getElementById('projUrl').value.trim(),
+    desc:     document.getElementById('projDesc').value.trim(),
+    tags:     document.getElementById('projTags').value.split(',').map(s=>s.trim()).filter(Boolean),
+    image:    store.projectImageData
+  };
+  store.projects.push(project);
+  closeModal('projectModal');
+  renderProjects();
+  toast('Projet ajouté avec succès');
+}
+
+function renderProjects() {
+  const grid = document.getElementById('portfolioGrid');
+  let html = '';
+  store.projects.forEach(p => {
+    html += `
+    <div class="card portfolio-card">
+      <div class="card-accent"></div>
+      <div class="portfolio-thumbnail">
+        ${p.image
+          ? `<img src="${p.image}" alt="${p.title}">`
+          : `<div class="portfolio-thumbnail-placeholder">🗂</div>`}
+      </div>
+      <div class="card-body" style="padding:20px 24px 0">
+        ${p.category ? `<div class="portfolio-category">${p.category}${p.year?' · '+p.year:''}</div>` : ''}
+        <div class="portfolio-title">${p.title}</div>
+        ${p.desc ? `<div class="portfolio-desc">${p.desc.substring(0,120)}${p.desc.length>120?'…':''}</div>` : ''}
+        ${p.tags.length>0 ? `<div class="portfolio-tags">${p.tags.slice(0,4).map(t=>`<span class="tag">${t}</span>`).join('')}</div>` : ''}
+      </div>
+      <div class="portfolio-footer">
+        ${p.url ? `<a href="${p.url}" target="_blank" class="btn-outline">🔗 Voir</a>` : ''}
+        <button class="btn-ghost" onclick="shareProjectFile('${p.id}')" title="Partager ce projet">⬡</button>
+        <button class="btn-danger" onclick="deleteProject('${p.id}')">✕ Retirer</button>
+      </div>
+    </div>`;
+  });
+  html += `<div class="add-card" onclick="openProjectModal()"><div class="add-card-icon">+</div><div class="add-card-label">Ajouter un projet</div></div>`;
+  grid.innerHTML = html;
+}
+
+function deleteProject(id) {
+  store.projects = store.projects.filter(p => p.id !== id);
+  renderProjects();
+  toast('Projet supprimé','✕');
+}
+
+// Partage réel d'un projet du portfolio : image + description en fichier/texte
+async function shareProjectFile(id) {
+  const p = store.projects.find(x => x.id === id);
+  if (!p) return;
+  const parts = [p.title];
+  if (p.category) parts.push(p.category + (p.year ? ' · ' + p.year : ''));
+  if (p.role) parts.push(p.role);
+  let caption = parts.join(' — ');
+  if (p.desc) caption += '\n\n' + p.desc;
+  if (p.url) caption += '\n\n' + p.url;
+
+  if (p.image) {
+    try {
+      const blob = dataURLtoBlob(p.image);
+      const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg','jpg');
+      const filename = (p.title || 'projet').replace(/\s+/g,'_') + '.' + ext;
+      await shareOrDownloadFile(blob, filename, blob.type, p.title, caption);
+      return;
+    } catch (e) { /* fallback texte ci-dessous */ }
+  }
+  if (navigator.share) {
+    navigator.share({ title: p.title, text: caption, url: p.url || undefined })
+      .then(() => toast('Projet partagé !')).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(caption).then(() => toast('Description du projet copiée'));
+  }
+}
+
+// ============================================================
+// SOCIALS
+// ============================================================
+function openSocialModal() {
+  ['socialPlatform','socialHandle','socialFollowers','socialUrl'].forEach(f => {
+    document.getElementById(f).value = '';
+  });
+  openModal('socialModal');
+}
+
+function getSocialIcon(platform) {
+  const icons = {
+    'LinkedIn':'in','Twitter / X':'𝕏','Instagram':'◉','Facebook':'f','YouTube':'▶',
+    'TikTok':'⟁','GitHub':'⌥','Site Web':'◈','Autre':'◉'
+  };
+  return icons[platform] || '◉';
+}
+function getSocialClass(platform) {
+  const cls = {
+    'LinkedIn':'si-linkedin','Twitter / X':'si-twitter','Instagram':'si-instagram',
+    'Facebook':'si-facebook','YouTube':'si-youtube','TikTok':'si-tiktok',
+    'GitHub':'si-github','Site Web':'si-website'
+  };
+  return cls[platform] || 'si-website';
+}
+
+function saveSocial() {
+  const platform = document.getElementById('socialPlatform').value;
+  const url = document.getElementById('socialUrl').value.trim();
+  if (!platform || !url) { toast('Plateforme et URL requis','⚠'); return; }
+  store.socials.push({
+    id: Date.now().toString(),
+    platform,
+    handle:    document.getElementById('socialHandle').value.trim(),
+    followers: document.getElementById('socialFollowers').value.trim(),
+    url
+  });
+  closeModal('socialModal');
+  renderSocials();
+  toast('Réseau social ajouté');
+}
+
+function renderSocials() {
+  const grid = document.getElementById('socialsGrid');
+  let html = '';
+  store.socials.forEach(s => {
+    html += `
+    <div class="card">
+      <div class="card-accent"></div>
+      <div class="social-card">
+        <div class="social-icon-wrap ${getSocialClass(s.platform)}">${getSocialIcon(s.platform)}</div>
+        <div class="social-info">
+          <div class="social-platform">${s.platform}</div>
+          <div class="social-handle">${s.handle || s.platform}</div>
+          ${s.followers ? `<div class="social-url">${s.followers} abonnés</div>` : `<div class="social-url">${s.url}</div>`}
+        </div>
+        <div class="social-actions">
+          <a href="${s.url}" target="_blank" class="btn-icon">🔗</a>
+          <button class="btn-icon" onclick="deleteSocial('${s.id}')" style="color:#e05050">✕</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += `<div class="add-card" onclick="openSocialModal()"><div class="add-card-icon">+</div><div class="add-card-label">Ajouter un réseau</div></div>`;
+  grid.innerHTML = html;
+}
+function deleteSocial(id) {
+  store.socials = store.socials.filter(s => s.id !== id);
+  renderSocials();
+  toast('Réseau supprimé','✕');
+}
+
+// ============================================================
+// PITCH DECKS
+// ============================================================
+function importPitch(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const pitch = {
+    id:       Date.now().toString(),
+    name:     file.name.replace(/\.[^/.]+$/, ''),
+    filename: file.name,
+    size:     formatFileSize(file.size),
+    type:     file.name.split('.').pop().toUpperCase(),
+    date:     new Date().toLocaleDateString('fr-FR'),
+    active:   true,
+    file:     null
+  };
+  const reader = new FileReader();
+  reader.onload = e => {
+    pitch.file = e.target.result;
+    store.pitches.push(pitch);
+    renderPitches();
+    toast(`Pitch "${pitch.name}" importé`);
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1048576).toFixed(1) + ' MB';
+}
+
+function renderPitches() {
+  const grid = document.getElementById('pitchesGrid');
+  let html = '';
+  store.pitches.forEach(p => {
+    html += `
+    <div class="card pitch-deck-card">
+      <div class="card-accent"></div>
+      <div class="pitch-deck-preview">
+        <div class="pitch-deck-preview-icon">${p.type === 'PDF' ? '📕' : '📊'}</div>
+      </div>
+      <div class="pitch-deck-info">
+        <div class="pitch-deck-name">${p.name}</div>
+        <div class="pitch-deck-meta">${p.type} · ${p.size} · ${p.date}</div>
+      </div>
+      <div class="pitch-deck-footer">
+        <button class="btn-outline" onclick="renamePitch('${p.id}')">✎ Renommer</button>
+        <button class="btn-ghost" onclick="sharePitchNFC('${p.id}')" title="Partager via NFC">⬡</button>
+        <button class="btn-danger" onclick="deletePitch('${p.id}')">✕</button>
+        <div class="pitch-active-toggle">
+          <span>Partager</span>
+          <div class="toggle ${p.active ? 'on' : ''}" onclick="togglePitch('${p.id}')"></div>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += `<div class="add-card" onclick="document.getElementById('pitchFileInput').click()"><div class="add-card-icon">📊</div><div class="add-card-label">Importer un Pitch</div></div>`;
+  grid.innerHTML = html;
+}
+
+function togglePitch(id) {
+  const p = store.pitches.find(x => x.id === id);
+  if (p) { p.active = !p.active; renderPitches(); }
+}
+function deletePitch(id) {
+  store.pitches = store.pitches.filter(p => p.id !== id);
+  renderPitches();
+  toast('Pitch supprimé','✕');
+}
+function renamePitch(id) {
+  const p = store.pitches.find(x => x.id === id);
+  if (!p) return;
+  const name = prompt('Nouveau nom :', p.name);
+  if (name && name.trim()) { p.name = name.trim(); renderPitches(); toast('Renommé avec succès'); }
+}
+function dataURLtoBlob(dataURL) {
+  const [meta, b64] = dataURL.split(',');
+  const mime = (meta.match(/:(.*?);/) || [,'application/octet-stream'])[1];
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+// Partage le VRAI fichier du pitch (PDF/PPT/image importé), pas un lien fictif
+async function sharePitchNFC(id) {
+  const p = store.pitches.find(x => x.id === id);
+  if (!p) return;
+  if (!p.file) { toast('Fichier introuvable pour ce pitch','⚠'); return; }
+  toast('⏳ Préparation du fichier…');
+  try {
+    const blob = dataURLtoBlob(p.file);
+    const filename = p.filename || (p.name + '.' + (p.type || 'pdf').toLowerCase());
+    await shareOrDownloadFile(blob, filename, blob.type || 'application/octet-stream', p.name, `Pitch deck — ${p.name}`);
+  } catch (e) {
+    toast('Erreur lors du partage : ' + e.message, '⚠');
+  }
+}
+
+// ============================================================
+// INVOICES
+// ============================================================
+function openInvoiceModal() {
+  store.invoiceItems = [];
+  // Defaults
+  document.getElementById('invNumber').value = `PRO-${new Date().getFullYear()}-${String(store.invoices.length+1).padStart(3,'0')}`;
+  document.getElementById('invDate').value = new Date().toISOString().split('T')[0];
+  const due = new Date(); due.setDate(due.getDate()+30);
+  document.getElementById('invDueDate').value = due.toISOString().split('T')[0];
+  document.getElementById('invDiscount').value = '0';
+  document.getElementById('invTax').value = '19.25';
+  document.getElementById('invCompanyName').value = store.companyName || '';
+  ['invToName','invToEmail','invToAddress','invFromName','invFromEmail','invFromPhone','invFromAddress','invNotes'].forEach(f => {
+    document.getElementById(f).value = '';
+  });
+  document.getElementById('invoiceItemsList').innerHTML = '';
+  document.getElementById('invoiceTotalsDisplay').innerHTML = '';
+  addInvoiceItem();
+  openModal('invoiceModal');
+}
+
+function addInvoiceItem() {
+  const id = `item_${Date.now()}`;
+  store.invoiceItems.push(id);
+  const container = document.getElementById('invoiceItemsList');
+  const el = document.createElement('div');
+  el.className = 'item-row';
+  el.id = id;
+  el.innerHTML = `
+    <input class="form-input" style="flex:3" id="${id}_desc" placeholder="Description de la prestation" oninput="updateInvoiceTotals()">
+    <input class="form-input narrow" id="${id}_qty" type="number" value="1" min="1" placeholder="Qté" oninput="updateInvoiceTotals()">
+    <input class="form-input narrow" id="${id}_price" type="number" value="0" placeholder="P.U." oninput="updateInvoiceTotals()">
+    <input class="form-input narrow" id="${id}_total" readonly placeholder="Total" style="color:var(--gold)">
+    <button class="btn-icon" onclick="removeInvoiceItem('${id}')" style="color:#e05050;flex-shrink:0">✕</button>`;
+  container.appendChild(el);
+  updateInvoiceTotals();
+}
+
+function removeInvoiceItem(id) {
+  store.invoiceItems = store.invoiceItems.filter(i => i !== id);
+  const el = document.getElementById(id);
+  if (el) el.remove();
+  updateInvoiceTotals();
+}
+
+function updateInvoiceTotals() {
+  let subtotal = 0;
+  store.invoiceItems.forEach(id => {
+    const qty   = parseFloat(document.getElementById(`${id}_qty`)?.value) || 0;
+    const price = parseFloat(document.getElementById(`${id}_price`)?.value) || 0;
+    const total = qty * price;
+    const totalEl = document.getElementById(`${id}_total`);
+    if (totalEl) totalEl.value = total.toFixed(2);
+    subtotal += total;
+  });
+  const discount = parseFloat(document.getElementById('invDiscount')?.value) || 0;
+  const tax      = parseFloat(document.getElementById('invTax')?.value) || 0;
+  const currency = document.getElementById('invCurrency')?.value || 'FCFA';
+  const discountAmt = subtotal * (discount/100);
+  const taxable = subtotal - discountAmt;
+  const taxAmt  = taxable * (tax/100);
+  const total   = taxable + taxAmt;
+  const fmt = n => n.toLocaleString('fr-FR', {minimumFractionDigits:2,maximumFractionDigits:2}) + ' ' + currency;
+  document.getElementById('invoiceTotalsDisplay').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+      <div class="invoice-total-row"><span class="invoice-total-label">Sous-total</span><span class="invoice-total-amount">${fmt(subtotal)}</span></div>
+      ${discount>0?`<div class="invoice-total-row"><span class="invoice-total-label">Remise (${discount}%)</span><span class="invoice-total-amount" style="color:#5ec47a">−${fmt(discountAmt)}</span></div>`:''}
+      ${tax>0?`<div class="invoice-total-row"><span class="invoice-total-label">TVA (${tax}%)</span><span class="invoice-total-amount">${fmt(taxAmt)}</span></div>`:''}
+      <div class="invoice-total-row" style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:4px">
+        <span class="invoice-total-label" style="color:var(--white);font-size:0.75rem">TOTAL TTC</span>
+        <span class="invoice-total-amount" style="font-size:1.6rem;color:var(--gold)">${fmt(total)}</span>
+      </div>
+    </div>`;
+  return { subtotal, discount, discountAmt, tax, taxAmt, total, currency };
+}
+
+function collectInvoiceData() {
+  const items = [];
+  store.invoiceItems.forEach(id => {
+    const desc  = document.getElementById(`${id}_desc`)?.value || '';
+    const qty   = parseFloat(document.getElementById(`${id}_qty`)?.value) || 0;
+    const price = parseFloat(document.getElementById(`${id}_price`)?.value) || 0;
+    if (desc || qty) items.push({ desc, qty, price, total: qty*price });
+  });
+  const totals = updateInvoiceTotals();
+  return {
+    number:      document.getElementById('invNumber').value,
+    date:        document.getElementById('invDate').value,
+    dueDate:     document.getElementById('invDueDate').value,
+    currency:    document.getElementById('invCurrency').value,
+    companyName: document.getElementById('invCompanyName').value || store.companyName || 'Mon Entreprise',
+    fromName:    document.getElementById('invFromName').value,
+    fromEmail:   document.getElementById('invFromEmail').value,
+    fromPhone:   document.getElementById('invFromPhone').value,
+    fromAddress: document.getElementById('invFromAddress').value,
+    toName:      document.getElementById('invToName').value,
+    toEmail:     document.getElementById('invToEmail').value,
+    toAddress:   document.getElementById('invToAddress').value,
+    notes:       document.getElementById('invNotes').value,
+    items, ...totals
+  };
+}
+
+function saveInvoice() {
+  const data = collectInvoiceData();
+  if (!data.toName) { toast('Le nom du client est requis','⚠'); return; }
+  const invoice = { id: Date.now().toString(), status: 'draft', ...data };
+  store.invoices.push(invoice);
+  closeModal('invoiceModal');
+  renderInvoices();
+  toast('Facture enregistrée');
+}
+
+function renderInvoices() {
+  const grid = document.getElementById('invoicesGrid');
+  const statusLabel = { draft:'Brouillon', sent:'Envoyée', paid:'Payée', overdue:'En retard' };
+  let html = '';
+  store.invoices.forEach(inv => {
+    const fmt = n => n?.toLocaleString('fr-FR', {minimumFractionDigits:2}) + ' ' + (inv.currency||'FCFA');
+    html += `
+    <div class="card invoice-card">
+      <div class="card-accent"></div>
+      <div class="invoice-card-inner">
+        <div class="invoice-number">${inv.number}</div>
+        <div class="invoice-client">${inv.toName}</div>
+        <div class="invoice-amount">${fmt(inv.total)} <span></span></div>
+        <div class="invoice-meta">Émis le ${inv.date}${inv.dueDate ? ' · Échéance: '+inv.dueDate : ''}</div>
+        <span class="invoice-status status-${inv.status}">${statusLabel[inv.status]||inv.status}</span>
+      </div>
+      <div class="invoice-card-footer">
+        <button class="btn-outline" onclick="viewInvoice('${inv.id}')">👁 Aperçu</button>
+        <button class="btn-ghost" onclick="shareInvoiceDirectly('${inv.id}')" title="Partager via NFC">⬡</button>
+        <select class="form-input" style="font-size:0.65rem;padding:7px 10px;max-width:130px" onchange="setInvoiceStatus('${inv.id}',this.value)">
+          <option value="draft" ${inv.status==='draft'?'selected':''}>Brouillon</option>
+          <option value="sent"  ${inv.status==='sent'?'selected':''}>Envoyée</option>
+          <option value="paid"  ${inv.status==='paid'?'selected':''}>Payée</option>
+          <option value="overdue" ${inv.status==='overdue'?'selected':''}>En retard</option>
+        </select>
+        <button class="btn-danger" onclick="deleteInvoice('${inv.id}')">✕</button>
+      </div>
+    </div>`;
+  });
+  html += `<div class="add-card" onclick="openInvoiceModal()"><div class="add-card-icon">+</div><div class="add-card-label">Créer une facture</div></div>`;
+  grid.innerHTML = html;
+}
+function setInvoiceStatus(id, status) {
+  const inv = store.invoices.find(i => i.id === id);
+  if (inv) { inv.status = status; renderInvoices(); toast('Statut mis à jour'); }
+}
+async function shareInvoiceDirectly(id) {
+  const inv = store.invoices.find(i => i.id === id);
+  if (!inv) return;
+  toast('⏳ Envoi de la facture vers le cloud…');
+  try {
+    renderInvoicePreview(inv);
+    const content = document.getElementById('invoicePreviewContent').innerHTML;
+    const filename = `Facture_${(inv.number || 'proforma').replace(/[^\w-]/g,'_')}.pdf`;
+    const blob = await generateRealPdfBlob(content, filename);
+    const url = await createCloudShareSingleFile(blob, filename, 'application/pdf', `Facture ${inv.number}`, `Facture pour ${inv.toName || ''}`);
+    if (navigator.share) {
+      navigator.share({ title: `Facture ${inv.number}`, text: `Facture pour ${inv.toName}`, url })
+        .then(() => toast('Facture partagée !')).catch(()=>{});
+    } else {
+      navigator.clipboard?.writeText(url).then(()=>toast('Lien facture copié — collez dans WhatsApp / email'));
+    }
+  } catch (e) {
+    toast('Erreur : ' + e.message, '⚠');
+  }
+}
+async function shareCurrentInvoiceNFC() {
+  const data = store.invoicePreviewData;
+  if (!data) { toast('Aucune facture à partager','⚠'); return; }
+  const label = data?.number ? `Facture ${data.number}` : 'Facture Proforma';
+  toast('⏳ Envoi vers le cloud…');
+  let url;
+  try {
+    renderInvoicePreview(data);
+    const content = document.getElementById('invoicePreviewContent').innerHTML;
+    const filename = `Facture_${(data.number || 'proforma').replace(/[^\w-]/g,'_')}.pdf`;
+    const blob = await generateRealPdfBlob(content, filename);
+    url = await createCloudShareSingleFile(blob, filename, 'application/pdf', label, '');
+  } catch (e) {
+    toast('Erreur d\'envoi : ' + e.message, '⚠');
+    return;
+  }
+  if ('NDEFReader' in window) {
+    const ndef = new NDEFReader();
+    ndef.write({ records: [{ recordType: 'url', data: url }] })
+      .then(() => toast(`⬡ NFC programmée — ${label}`))
+      .catch(e => {
+        navigator.clipboard?.writeText(url).then(()=>toast('Lien copié (NFC indisponible)'));
+      });
+  } else {
+    if (navigator.share) {
+      navigator.share({ title: label, url }).then(()=>toast('Partagé !')).catch(()=>{});
+    } else {
+      navigator.clipboard?.writeText(url).then(()=>toast('Lien copié !'));
+    }
+  }
+}
+function deleteInvoice(id) {
+  store.invoices = store.invoices.filter(i => i.id !== id);
+  renderInvoices(); toast('Facture supprimée','✕');
+}
+function viewInvoice(id) {
+  const inv = store.invoices.find(i => i.id === id);
+  if (!inv) return;
+  store.invoicePreviewData = inv;
+  renderInvoicePreview(inv);
+  openModal('invoicePreviewModal');
+}
+function previewInvoice() {
+  const data = collectInvoiceData();
+  store.invoicePreviewData = data;
+  renderInvoicePreview(data);
+  openModal('invoicePreviewModal');
+}
+function renderInvoicePreview(inv) {
+  const fmt = n => (n||0).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ' + (inv.currency||'FCFA');
+  let itemsHtml = '';
+  (inv.items||[]).forEach(item => {
+    itemsHtml += `<tr>
+      <td>${item.desc||''}</td>
+      <td style="text-align:center">${item.qty||0}</td>
+      <td style="text-align:right">${fmt(item.price)}</td>
+      <td style="text-align:right;font-weight:600">${fmt(item.total)}</td>
+    </tr>`;
+  });
+  const companyName = inv.companyName || store.companyName || 'Mon Entreprise';
+  const html = `<div class="invoice-preview">
+    <div class="ip-header">
+      <div>
+        <div class="ip-brand">${companyName}</div>
+        <div style="font-size:0.7rem;color:#999;margin-top:4px">Facture Proforma</div>
+      </div>
+      <div style="text-align:right">
+        <div class="ip-label">N° Facture</div>
+        <div class="ip-number">${inv.number||'—'}</div>
+        <div style="font-size:0.72rem;color:#666;margin-top:6px">Émis le : ${inv.date||'—'}</div>
+        ${inv.dueDate ? `<div style="font-size:0.72rem;color:#666">Échéance : ${inv.dueDate}</div>` : ''}
+      </div>
+    </div>
+    <div class="ip-divider"></div>
+    <div class="ip-parties">
+      <div>
+        <div class="ip-party-label">De</div>
+        <div class="ip-party-name">${inv.fromName||'—'}</div>
+        ${inv.fromEmail ? `<div class="ip-party-detail">${inv.fromEmail}</div>` : ''}
+        ${inv.fromPhone ? `<div class="ip-party-detail">${inv.fromPhone}</div>` : ''}
+        ${inv.fromAddress ? `<div class="ip-party-detail">${inv.fromAddress}</div>` : ''}
+      </div>
+      <div>
+        <div class="ip-party-label">À</div>
+        <div class="ip-party-name">${inv.toName||'—'}</div>
+        ${inv.toEmail ? `<div class="ip-party-detail">${inv.toEmail}</div>` : ''}
+        ${inv.toAddress ? `<div class="ip-party-detail">${inv.toAddress}</div>` : ''}
+      </div>
+    </div>
+    <table class="ip-table">
+      <thead>
+        <tr>
+          <th>Description</th><th style="text-align:center">Qté</th>
+          <th style="text-align:right">P.U.</th><th style="text-align:right">Total HT</th>
+        </tr>
+      </thead>
+      <tbody>${itemsHtml}</tbody>
+    </table>
+    <div class="ip-totals">
+      <div class="ip-total-row"><span class="ip-total-lbl">Sous-total HT</span><span class="ip-total-val">${fmt(inv.subtotal)}</span></div>
+      ${inv.discount>0 ? `<div class="ip-total-row"><span class="ip-total-lbl">Remise (${inv.discount}%)</span><span class="ip-total-val" style="color:#2a8a4a">−${fmt(inv.discountAmt)}</span></div>` : ''}
+      ${inv.tax>0 ? `<div class="ip-total-row"><span class="ip-total-lbl">TVA (${inv.tax}%)</span><span class="ip-total-val">${fmt(inv.taxAmt)}</span></div>` : ''}
+      <div class="ip-total-row" style="border-top:2px solid #000;padding-top:10px;margin-top:6px">
+        <span class="ip-total-lbl ip-grand-lbl">TOTAL TTC</span>
+        <span class="ip-total-val ip-grand">${fmt(inv.total)}</span>
+      </div>
+    </div>
+    ${inv.notes ? `<div class="ip-footer">${inv.notes}</div>` : ''}
+  </div>`;
+  document.getElementById('invoicePreviewContent').innerHTML = html;
+}
+function printInvoice() {
+  const content = document.getElementById('invoicePreviewContent').innerHTML;
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture Proforma</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Montserrat',sans-serif;background:#fff;color:#000;padding:24px}
+    ${document.querySelector('style').textContent}
+  </style></head><body>${content}</body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 800);
+}
+
+// Vrai PDF téléchargeable pour une facture (proforma ou aperçu courant)
+async function exportInvoicePDF(id) {
+  const inv = id ? store.invoices.find(i => i.id === id) : store.invoicePreviewData;
+  if (!inv) { toast('Aucune facture à convertir','⚠'); return; }
+  if (id) { renderInvoicePreview(inv); }
+  const content = document.getElementById('invoicePreviewContent')?.innerHTML;
+  if (!content) { toast('Aucune facture à convertir','⚠'); return; }
+  toast('⏳ Génération du PDF en cours…');
+  try {
+    const filename = `Facture_${(inv.number||'proforma').replace(/[^\w-]/g,'_')}.pdf`;
+    const blob = await generateRealPdfBlob(content, filename);
+    store.lastInvoicePdfBlob = blob;
+    store.lastInvoicePdfName = filename;
+    downloadBlobFile(blob, filename);
+    toast('✓ Facture PDF générée et téléchargée');
+  } catch (e) {
+    toast('Erreur de conversion PDF : ' + e.message, '⚠');
+  }
+}
+
+async function shareInvoicePDFFile(id) {
+  const inv = id ? store.invoices.find(i => i.id === id) : store.invoicePreviewData;
+  if (!inv) { toast('Aucune facture à partager','⚠'); return; }
+  toast('⏳ Préparation du PDF à partager…');
+  try {
+    if (id) renderInvoicePreview(inv);
+    const content = document.getElementById('invoicePreviewContent')?.innerHTML;
+    const filename = `Facture_${(inv.number||'proforma').replace(/[^\w-]/g,'_')}.pdf`;
+    const blob = await generateRealPdfBlob(content, filename);
+    store.lastInvoicePdfBlob = blob;
+    store.lastInvoicePdfName = filename;
+    await shareOrDownloadFile(blob, filename, 'application/pdf', `Facture ${inv.number||''}`, `Facture pour ${inv.toName||''}`);
+  } catch (e) {
+    toast('Erreur : ' + e.message, '⚠');
+  }
+}
+
+// ============================================================
+// SHARE MODAL
+// ============================================================
+// ============================================================
+// SHARE MODAL — GRANULAR NFC / PDF SELECTION
+// ============================================================
+function openShareModal() {
+  // Profiles (radio-style: one at a time)
+  let pHtml = '';
+  store.profiles.forEach(p => {
+    pHtml += `<div class="share-check-item ${p.active?'selected':''}" data-id="${p.id}" data-type="profile" onclick="selectProfile(this)">
+      <div class="share-checkbox">${p.active?'✓':''}</div>
+      <div class="share-item-name">${p.firstName} ${p.lastName}</div>
+      <div class="share-item-meta" style="flex:1">${p.title}${p.company?' · '+p.company:''}</div>
+      ${p.active ? '<span class="share-item-badge green">Actif</span>' : ''}
+    </div>`;
+  });
+  if (!pHtml) pHtml = emptyShareMsg('Aucun profil — créez-en un d\'abord');
+  document.getElementById('shareProfileList').innerHTML = pHtml;
+
+  // Portfolio
+  let portHtml = '';
+  store.projects.forEach(p => {
+    portHtml += `<div class="share-check-item selected" data-id="${p.id}" data-type="project" onclick="toggleShareItem(this)">
+      <div class="share-checkbox">✓</div>
+      <div class="share-item-name">${p.title}</div>
+      <div class="share-item-meta" style="flex:1">${p.category||''}</div>
+      <span class="share-item-badge">${p.category||'Projet'}</span>
+    </div>`;
+  });
+  if (!portHtml) portHtml = emptyShareMsg('Aucun projet dans le portfolio');
+  document.getElementById('sharePortfolioList').innerHTML = portHtml;
+
+  // Socials
+  const socialIcons = {linkedin:'💼',twitter:'🐦',instagram:'📸',facebook:'📘',youtube:'▶️',tiktok:'🎵',website:'🌐',github:'💻'};
+  let socHtml = '';
+  store.socials.forEach(s => {
+    socHtml += `<div class="share-check-item selected" data-id="${s.id}" data-type="social" onclick="toggleShareItem(this)">
+      <div class="share-checkbox">✓</div>
+      <div class="share-item-name">${socialIcons[s.platform]||'🔗'} ${s.handle||s.url}</div>
+      <div class="share-item-meta" style="flex:1">${s.platform?.toUpperCase()||''}</div>
+    </div>`;
+  });
+  if (!socHtml) socHtml = emptyShareMsg('Aucun réseau social ajouté');
+  document.getElementById('shareSocialList').innerHTML = socHtml;
+
+  // Pitches
+  let ptHtml = '';
+  store.pitches.forEach(p => {
+    ptHtml += `<div class="share-check-item ${p.active?'selected':''}" data-id="${p.id}" data-type="pitch" onclick="toggleShareItem(this)">
+      <div class="share-checkbox">${p.active?'✓':''}</div>
+      <div class="share-item-name">${p.name}</div>
+      <div class="share-item-meta" style="flex:1">${p.date||''}</div>
+      <span class="share-item-badge">${p.type}</span>
+    </div>`;
+  });
+  if (!ptHtml) ptHtml = emptyShareMsg('Aucun pitch importé');
+  document.getElementById('sharePitchList').innerHTML = ptHtml;
+
+  // Invoices
+  const statusColors = {draft:'var(--mid-gray)',sent:'#5eb8e0',paid:'#5ec47a',overdue:'#e05050'};
+  const statusLabels = {draft:'Brouillon',sent:'Envoyée',paid:'Payée',overdue:'En retard'};
+  let invHtml = '';
+  store.invoices.forEach(inv => {
+    const fmt = n => (n||0).toLocaleString('fr-FR',{minimumFractionDigits:0}) + ' ' + (inv.currency||'FCFA');
+    invHtml += `<div class="share-check-item" data-id="${inv.id}" data-type="invoice" onclick="toggleShareItem(this)">
+      <div class="share-checkbox"></div>
+      <div class="share-item-name">${inv.number} — ${inv.toName}</div>
+      <div class="share-item-meta" style="flex:1">${fmt(inv.total)}</div>
+      <span class="share-item-badge" style="color:${statusColors[inv.status]||'var(--mid-gray)'};border-color:currentColor">${statusLabels[inv.status]||inv.status}</span>
+    </div>`;
+  });
+  // Add Word doc if loaded
+  const wordContent = document.getElementById('wordEditorArea')?.innerHTML?.trim();
+  const wordBadge = document.getElementById('wordFileBadgeBar')?.querySelector('span')?.textContent;
+  if (wordContent && wordContent.length > 10) {
+    invHtml += `<div class="share-check-item" data-type="word-doc" onclick="toggleShareItem(this)">
+      <div class="share-checkbox"></div>
+      <div class="share-item-name">📄 ${wordBadge||'Document Word importé'}</div>
+      <div class="share-item-meta" style="flex:1">Facture Word</div>
+      <span class="share-item-badge">WORD</span>
+    </div>`;
+  }
+  if (!invHtml) invHtml = emptyShareMsg('Aucune facture créée');
+  document.getElementById('shareInvoiceList').innerHTML = invHtml;
+
+  // PDF tab: same invoices
+  let pdfInvHtml = '';
+  store.invoices.forEach(inv => {
+    const fmt = n => (n||0).toLocaleString('fr-FR',{minimumFractionDigits:0}) + ' ' + (inv.currency||'FCFA');
+    pdfInvHtml += `<div class="share-check-item" data-id="${inv.id}" data-type="invoice-pdf" onclick="toggleShareItem(this)">
+      <div class="share-checkbox"></div>
+      <div class="share-item-name">${inv.number} — ${inv.toName}</div>
+      <div class="share-item-meta" style="flex:1">${fmt(inv.total)} · ${inv.date}</div>
+    </div>`;
+  });
+  if (!pdfInvHtml) pdfInvHtml = emptyShareMsg('Aucune facture proforma créée');
+  document.getElementById('pdfInvoiceList').innerHTML = pdfInvHtml;
+
+  // Word doc status for PDF tab
+  const pdfWordEl = document.getElementById('pdfWordDocStatus');
+  if (wordContent && wordContent.length > 10) {
+    pdfWordEl.innerHTML = `<div class="share-check-item selected" data-type="word-pdf" onclick="toggleShareItem(this)">
+      <div class="share-checkbox">✓</div>
+      <div class="share-item-name">📄 ${wordBadge||'Document Word importé'}</div>
+      <div class="share-item-meta" style="flex:1">Prêt pour conversion PDF</div>
+      <span class="share-item-badge green">Chargé</span>
+    </div>`;
+  } else {
+    pdfWordEl.innerHTML = `<div style="font-size:0.75rem;color:var(--mid-gray);padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:var(--radius-sm)">
+      Aucun document Word importé. Allez dans <strong style="color:var(--gold)">Factures → Importer Word</strong> pour charger votre document.
+    </div>`;
+  }
+
+  generateQR(null);
+  document.getElementById('shareLinkInput').value = 'Cliquez sur "Programmer la carte NFC" pour générer le lien réel';
+  openModal('shareModal');
+}
+
+function emptyShareMsg(msg) {
+  return `<div style="font-size:0.72rem;color:var(--mid-gray);padding:12px 16px">${msg}</div>`;
+}
+
+// ============================================================
+// VCARD (contact réel) — enregistrement direct + numéro seul
+// ============================================================
+function buildVCard(p, phoneOnly = false) {
+  const esc = s => (s || '').toString().replace(/\n/g, '\\n').replace(/,/g, '\\,');
+  const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+  lines.push(`N:${esc(p.lastName)};${esc(p.firstName)};;;`);
+  lines.push(`FN:${esc(p.firstName)} ${esc(p.lastName)}`);
+  if (p.phone) lines.push(`TEL;TYPE=CELL:${esc(p.phone)}`);
+  if (!phoneOnly) {
+    if (p.title)   lines.push(`TITLE:${esc(p.title)}`);
+    if (p.company) lines.push(`ORG:${esc(p.company)}`);
+    if (p.email)   lines.push(`EMAIL:${esc(p.email)}`);
+    if (p.website) lines.push(`URL:${esc(p.website)}`);
+    if (p.location) lines.push(`ADR;TYPE=WORK:;;${esc(p.location)};;;;`);
+  }
+  lines.push('END:VCARD');
+  return lines.join('\r\n');
+}
+
+// Propose à la personne en face d'enregistrer directement le contact
+// (téléchargement .vcf, ou partage natif "Ajouter aux contacts" si supporté)
+async function downloadVCard(id, phoneOnly = false) {
+  const p = store.profiles.find(x => x.id === id);
+  if (!p) return;
+  if (!p.phone) { toast('Aucun numéro renseigné pour ce profil', '⚠'); return; }
+  const vcard = buildVCard(p, phoneOnly);
+  const blob = new Blob([vcard], { type: 'text/vcard' });
+  const filename = `${(p.firstName || 'contact')}_${(p.lastName || '')}.vcf`.replace(/\s+/g, '_');
+  await shareOrDownloadFile(blob, filename, 'text/vcard', 'Contact', `${p.firstName} ${p.lastName}`);
+}
+
+// Bouton rapide "📞" sur les cartes profils — ne partage que le numéro
+function quickSharePhone(id) {
+  downloadVCard(id, true);
+}
+
+// Bouton "Envoyer instantanément mon numéro" dans la modale de partage :
+// prend le profil coché dans la liste, sinon le profil actif
+function quickShareSelectedProfilePhone() {
+  const selEl = document.querySelector('#shareProfileList .share-check-item.selected');
+  const id = selEl?.dataset.id || store.profiles.find(p => p.active)?.id;
+  if (!id) { toast('Aucun profil disponible', '⚠'); return; }
+  downloadVCard(id, true);
+}
+
+// ============================================================
+// RENVOYER SON NUMÉRO — la personne qui reçoit la carte peut
+// répondre en un clic avec son propre numéro via WhatsApp
+// ============================================================
+let exchangeOwnerPhone = '';
+function openExchangeModal(ownerPhone, ownerName) {
+  exchangeOwnerPhone = ownerPhone || '';
+  document.getElementById('exchangeOwnerName').textContent = ownerName || 'ce contact';
+  document.getElementById('exchangeMyPhone').value = '';
+  openModal('exchangeModal');
+}
+function sendMyNumberBack() {
+  const myPhone = document.getElementById('exchangeMyPhone').value.trim();
+  if (!myPhone) { toast('Merci de saisir votre numéro', '⚠'); return; }
+  const waNumber = (exchangeOwnerPhone || '').replace(/\D/g, '');
+  const msg = encodeURIComponent(`Bonjour, voici mon numéro de téléphone : ${myPhone}`);
+  if (waNumber) {
+    window.open(`https://wa.me/${waNumber}?text=${msg}`, '_blank');
+    toast('Ouverture de WhatsApp…');
+  } else {
+    navigator.clipboard?.writeText(myPhone).then(() => toast('Numéro copié — envoyez-le manuellement'));
+  }
+  closeModal('exchangeModal');
+}
+
+function switchShareMode(mode, btn) {
+  document.querySelectorAll('.share-mode-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('shareModeNFC').style.display = mode === 'nfc' ? 'block' : 'none';
+  document.getElementById('shareModePDF').style.display = mode === 'pdf' ? 'block' : 'none';
+}
+
+function selectProfile(el) {
+  // Radio behavior for profiles
+  document.querySelectorAll('#shareProfileList .share-check-item').forEach(item => {
+    item.classList.remove('selected');
+    item.querySelector('.share-checkbox').textContent = '';
+  });
+  el.classList.add('selected');
+  el.querySelector('.share-checkbox').textContent = '✓';
+}
+
+function toggleShareItem(el) {
+  el.classList.toggle('selected');
+  el.querySelector('.share-checkbox').textContent = el.classList.contains('selected') ? '✓' : '';
+}
+
+function shareToggleAll(listId, select) {
+  document.querySelectorAll(`#${listId} .share-check-item`).forEach(item => {
+    item.classList.toggle('selected', select);
+    item.querySelector('.share-checkbox').textContent = select ? '✓' : '';
+  });
+}
+
+function getShareSelection() {
+  const sel = { profiles:[], projects:[], socials:[], pitches:[], invoices:[], wordDoc: false, phoneOnly: false };
+  document.querySelectorAll('#shareProfileList .share-check-item.selected').forEach(el => sel.profiles.push(el.dataset.id));
+  document.querySelectorAll('#sharePortfolioList .share-check-item.selected').forEach(el => sel.projects.push(el.dataset.id));
+  document.querySelectorAll('#shareSocialList .share-check-item.selected').forEach(el => sel.socials.push(el.dataset.id));
+  document.querySelectorAll('#sharePitchList .share-check-item.selected').forEach(el => sel.pitches.push(el.dataset.id));
+  document.querySelectorAll('#shareInvoiceList .share-check-item.selected').forEach(el => {
+    if (el.dataset.type === 'word-doc') sel.wordDoc = true;
+    else sel.invoices.push(el.dataset.id);
+  });
+  sel.phoneOnly = document.getElementById('phoneOnlyToggle')?.checked || false;
+  return sel;
+}
+
+async function activateNFC() {
+  const sel = getShareSelection();
+  const total = sel.profiles.length + sel.projects.length + sel.socials.length + sel.pitches.length + sel.invoices.length + (sel.wordDoc?1:0);
+  if (total === 0) { toast('Sélectionnez au moins un élément à partager','⚠'); return; }
+
+  // Mode "numéro seul" : on écrit un vrai enregistrement vCard sur le tag NFC
+  // (au lieu d'un simple lien), lisible directement par le téléphone qui tape la carte.
+  if (sel.phoneOnly && sel.profiles.length > 0) {
+    const p = store.profiles.find(x => x.id === sel.profiles[0]);
+    if (!p || !p.phone) { toast('Ce profil n\'a pas de numéro renseigné','⚠'); return; }
+    const vcard = buildVCard(p, true);
+    if ('NDEFReader' in window) {
+      const ndef = new NDEFReader();
+      try {
+        await ndef.write({ records: [{ recordType: 'mime', mediaType: 'text/vcard', data: new TextEncoder().encode(vcard) }] });
+        toast(`✓ NFC programmée — numéro de ${p.firstName} prêt à être enregistré`);
+      } catch (e) {
+        toast('Erreur NFC : ' + e.message + ' — utilisez le bouton "Envoyer instantanément"', '⚠');
+      }
+    } else {
+      downloadVCard(p.id, true);
+      toast('NFC non disponible sur cet appareil — contact téléchargé à la place');
+    }
+    return;
+  }
+
+  // Upload réel des éléments cochés vers Firebase (Storage + Firestore),
+  // puis on écrit le VRAI lien obtenu sur le tag NFC (le tag ne porte que
+  // ce petit lien — le contenu, lui, vit sur le cloud).
+  toast('⏳ Envoi vers le cloud…');
+  let url;
+  try {
+    const { files, text } = await buildCombinedShareFiles(sel);
+    url = await createCloudShare({ files, text, title: 'MDEA Business Card' });
+  } catch (e) {
+    toast('Erreur d\'envoi vers le cloud : ' + e.message, '⚠');
+    return;
+  }
+  document.getElementById('shareLinkInput').value = url;
+  await generateQR(url);
+
+  if ('NDEFReader' in window) {
+    const ndef = new NDEFReader();
+    ndef.write({ records: [{ recordType: 'url', data: url }] })
+      .then(() => toast(`✓ NFC programmée — ${total} élément(s) prêts`))
+      .catch(e => toast('Erreur NFC : ' + e.message, '⚠'));
+  } else {
+    navigator.clipboard?.writeText(url).then(() =>
+      toast(`Lien copié (${total} élément(s)) — NFC non disponible sur cet appareil`)
+    ).catch(() => toast(`${total} élément(s) sélectionnés — copiez le lien ci-dessus`));
+  }
+}
+
+async function shareViaLink() {
+  const sel = getShareSelection();
+  // Mode "numéro seul" : on partage directement le vrai fichier vCard plutôt qu'un lien
+  if (sel.phoneOnly && sel.profiles.length > 0) {
+    return quickShareSelectedProfilePhone();
+  }
+  const total = sel.profiles.length + sel.projects.length + sel.socials.length + sel.pitches.length + sel.invoices.length + (sel.wordDoc?1:0);
+  if (total === 0) { toast('Sélectionnez au moins un élément à partager','⚠'); return; }
+
+  toast('⏳ Préparation du partage…');
+  try {
+    const { files, text } = await buildCombinedShareFiles(sel);
+
+    // Cas idéal : partage natif de TOUS les fichiers réels en un seul geste
+    if (files.length > 0 && navigator.canShare && navigator.canShare({ files })) {
+      try {
+        await navigator.share({ files, title: 'MDEA Business Card', text });
+        toast('✓ Partagé avec succès');
+        return;
+      } catch (e) { /* utilisateur a annulé ou API refusée -> on retombe ci-dessous */ }
+    }
+    // Fallback : téléchargement direct de chaque fichier réel généré
+    if (files.length > 0) {
+      files.forEach(f => downloadBlobFile(f, f.name));
+      toast(`📥 ${files.length} fichier(s) téléchargé(s) — le partage groupé de fichiers n'est pas supporté sur cet appareil`);
+      return;
+    }
+    // Aucun fichier généré (ex: uniquement réseaux sociaux) -> partage du texte / lien
+    const url = document.getElementById('shareLinkInput').value;
+    if (navigator.share) {
+      navigator.share({ title: 'MDEA Business Card', text: text || undefined, url }).then(() => toast('Partagé !')).catch(()=>{});
+    } else {
+      navigator.clipboard?.writeText(text || url).then(() => toast('Copié !')).catch(()=>{});
+    }
+  } catch (e) {
+    toast('Erreur lors du partage : ' + e.message, '⚠');
+  }
+}
+
+// Assemble tous les éléments sélectionnés en VRAIS fichiers partageables
+// (vCard du profil, images des projets, fichiers des pitchs, PDF des factures)
+async function buildCombinedShareFiles(sel) {
+  const files = [];
+  const textParts = [];
+
+  // Profil -> vCard réelle
+  if (sel.profiles.length > 0) {
+    const p = store.profiles.find(x => x.id === sel.profiles[0]);
+    if (p) {
+      if (p.phone) {
+        const vcard = buildVCard(p, false);
+        const vBlob = new Blob([vcard], { type: 'text/vcard' });
+        files.push(new File([vBlob], `${p.firstName || 'contact'}_${p.lastName || ''}.vcf`.replace(/\s+/g,'_'), { type: 'text/vcard' }));
+      }
+      textParts.push(`${p.firstName || ''} ${p.lastName || ''} — ${p.title || ''}${p.company ? ' · ' + p.company : ''}`.trim());
+    }
+  }
+
+  // Portfolio -> image réelle de chaque projet
+  for (const id of sel.projects) {
+    const p = store.projects.find(x => x.id === id);
+    if (!p) continue;
+    if (p.image) {
+      try {
+        const blob = dataURLtoBlob(p.image);
+        const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg','jpg');
+        files.push(new File([blob], (p.title||'projet').replace(/\s+/g,'_') + '.' + ext, { type: blob.type }));
+      } catch (e) { /* ignore image corrompue */ }
+    }
+    textParts.push(`Projet : ${p.title}${p.desc ? ' — ' + p.desc.substring(0,140) : ''}`);
+  }
+
+  // Pitch decks -> fichier original réel (PDF/PPT/image)
+  for (const id of sel.pitches) {
+    const p = store.pitches.find(x => x.id === id);
+    if (!p || !p.file) continue;
+    try {
+      const blob = dataURLtoBlob(p.file);
+      files.push(new File([blob], p.filename || (p.name + '.pdf'), { type: blob.type || 'application/octet-stream' }));
+    } catch (e) { /* ignore */ }
+  }
+
+  // Factures proforma -> vrai PDF généré
+  for (const id of sel.invoices) {
+    const inv = store.invoices.find(i => i.id === id);
+    if (!inv) continue;
+    try {
+      renderInvoicePreview(inv);
+      const content = document.getElementById('invoicePreviewContent').innerHTML;
+      const filename = `Facture_${(inv.number || 'proforma').replace(/[^\w-]/g,'_')}.pdf`;
+      const blob = await generateRealPdfBlob(content, filename);
+      files.push(new File([blob], filename, { type: 'application/pdf' }));
+    } catch (e) { /* ignore */ }
+  }
+
+  // Document Word importé -> vrai PDF généré
+  if (sel.wordDoc) {
+    const content = document.getElementById('wordEditorArea')?.innerHTML?.trim();
+    if (content && content.length > 5) {
+      try {
+        const filename = 'Facture_Word.pdf';
+        const blob = await generateRealPdfBlob(content, filename);
+        files.push(new File([blob], filename, { type: 'application/pdf' }));
+      } catch (e) { /* ignore */ }
+    }
+  }
+
+  // Réseaux sociaux -> résumé texte (pas de fichier binaire à partager)
+  sel.socials.forEach(id => {
+    const s = store.socials.find(x => x.id === id);
+    if (s) textParts.push(`${(s.platform||'').toUpperCase()} : ${s.url || s.handle || ''}`);
+  });
+
+  return { files, text: textParts.join('\n') };
+}
+
+async function exportSelectedToPDF() {
+  // Check Word doc first
+  const wordSel = document.querySelector('#pdfWordDocStatus .share-check-item.selected');
+  const invSel  = document.querySelectorAll('#pdfInvoiceList .share-check-item.selected');
+
+  if (wordSel) {
+    await exportWordToPDF();
+    return;
+  }
+  if (invSel.length > 0) {
+    for (const el of invSel) {
+      await exportInvoicePDF(el.dataset.id);
+    }
+    return;
+  }
+  toast('Sélectionnez un document à convertir','⚠');
+}
+
+async function shareSelectedPDFviaLink() {
+  const wordSel = document.querySelector('#pdfWordDocStatus .share-check-item.selected');
+  const invSel = document.querySelectorAll('#pdfInvoiceList .share-check-item.selected');
+  if (invSel.length === 0 && !wordSel) {
+    toast('Sélectionnez un document à partager','⚠'); return;
+  }
+  if (wordSel) { await shareWordDocFile(); return; }
+  for (const el of invSel) {
+    await shareInvoicePDFFile(el.dataset.id);
+  }
+}
+
+function copyShareLink() {
+  const input = document.getElementById('shareLinkInput');
+  navigator.clipboard?.writeText(input.value).then(() => toast('Lien copié !')).catch(() => toast('Lien copié !'));
+}
+// ============================================================
+// NETLIFY BLOBS — PARTAGE CLOUD RÉEL
+// Remplace les anciens liens fictifs "https://mdea.card/..." par
+// de vrais liens hébergés. Les fichiers sont envoyés directement,
+// en streaming, à une Edge Function (netlify/edge-functions/
+// upload-share-file.mjs) — pas de limite de taille pratique comme
+// avec les fonctions classiques (~6 Mo). Les métadonnées du partage
+// (titre, texte, liste des fichiers) sont ensuite enregistrées via
+// une fonction classique. Le tag NFC ne porte que le lien final —
+// n'importe quel téléphone qui tape la carte ouvre share.html, qui
+// va chercher le contenu réel côté serveur.
+// ============================================================
+async function uploadFileToShare(shareId, file) {
+  const fd = new FormData();
+  fd.append('file', file, file.name || 'fichier');
+  const token = await NetlifyAuth.getToken();
+  const res = await fetch(`/api/upload-file?share=${encodeURIComponent(shareId)}`, {
+    method: 'POST',
+    headers: token ? { Authorization: 'Bearer ' + token } : {},
+    body: fd
+  });
+  if (!res.ok) throw new Error('Échec de l\'envoi du fichier "' + (file.name || '') + '" (http ' + res.status + ')');
+  return res.json(); // { ok, name, type, size }
+}
+
+// files: tableau de Blob/File réels — text: résumé textuel — title: titre affiché
+async function createCloudShare({ files = [], text = '', title = 'MDEA Business Card', extra = {} }) {
+  const shareId = generateId();
+  const uploaded = [];
+  for (const f of files) {
+    const result = await uploadFileToShare(shareId, f);
+    uploaded.push({ name: result.name, type: result.type, size: result.size });
+  }
+  const res = await NetlifyAuth.authedFetch('/.netlify/functions/create-share', {
+    method: 'POST',
+    body: JSON.stringify({ id: shareId, title, text, files: uploaded, extra })
+  });
+  if (!res.ok) throw new Error('Échec de création du partage (http ' + res.status + ')');
+  return `${window.location.origin}/share.html?id=${shareId}`;
+}
+
+// Raccourci pour les partages "un seul document" (facture, pitch, word doc)
+async function createCloudShareSingleFile(blob, filename, mimeType, title, text) {
+  const file = new File([blob], filename, { type: mimeType || blob.type || 'application/octet-stream' });
+  return createCloudShare({ files: [file], text: text || '', title: title || filename });
+}
+
+function generateId() {
+  return Math.random().toString(36).substr(2,12).toUpperCase();
+}
+
+// QR Code (visual only)
+async function generateQR(text) {
+  const grid = document.getElementById('qrGrid');
+  if (!grid) return;
+
+  // Pas encore de lien réel généré (avant clic sur "Programmer la carte NFC")
+  if (!text || !/^https?:\/\//i.test(text)) {
+    grid.innerHTML = '<div style="font-size:0.62rem;color:var(--mid-gray);padding:24px 10px;text-align:center;line-height:1.5">Le vrai QR code apparaîtra ici après génération du lien</div>';
+    return;
+  }
+
+  if (typeof QRCode === 'undefined') {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js');
+  }
+  grid.innerHTML = '';
+  new QRCode(grid, {
+    text,
+    width: 160,
+    height: 160,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+}
+
+// ============================================================
+// THEME SYSTEM
+// ============================================================
+const THEMES = ['','silver','ruby','sapphire','emerald','amethyst','copper','platinum','rose','ivory'];
+
+function applyTheme(theme) {
+  THEMES.forEach(t => { if(t) document.body.classList.remove('theme-'+t); });
+  if (theme) document.body.classList.add('theme-'+theme);
+  localStorage.setItem('mdea_theme', theme);
+  document.querySelectorAll('.theme-swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.theme === theme);
+  });
+  closeThemePicker();
+  toast('Thème appliqué');
+}
+
+function toggleThemePicker() {
+  document.getElementById('themePaletteDropdown').classList.toggle('open');
+}
+function closeThemePicker() {
+  document.getElementById('themePaletteDropdown').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  const btn = document.getElementById('themePickerBtn');
+  const dd  = document.getElementById('themePaletteDropdown');
+  if (!btn.contains(e.target) && !dd.contains(e.target)) closeThemePicker();
+});
+(function() {
+  const saved = localStorage.getItem('mdea_theme') || '';
+  if (saved) {
+    document.body.classList.add('theme-'+saved);
+    document.querySelectorAll('.theme-swatch').forEach(s => {
+      s.classList.toggle('active', s.dataset.theme === saved);
+    });
+  }
+})();
+
+// ============================================================
+// WORD IMPORT & RICH EDITOR
+// ============================================================
+function openWordImportModal() { openModal('wordImportModal'); }
+
+function wfmt(cmd, val) {
+  document.getElementById('wordEditorArea').focus();
+  document.execCommand(cmd, false, val || null);
+}
+
+function wInsertTable() {
+  const rows = 3, cols = 3;
+  let tbl = '<table style="width:100%;border-collapse:collapse;margin:12px 0">';
+  for (let r = 0; r < rows; r++) {
+    tbl += '<tr>';
+    for (let c = 0; c < cols; c++) {
+      const isHead = r === 0;
+      const style = isHead
+        ? 'border:1px solid #ccc;padding:8px 12px;background:#f5f4f0;font-weight:700;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase'
+        : 'border:1px solid #ccc;padding:8px 12px;font-size:0.82rem';
+      tbl += '<' + (isHead?'th':'td') + ' style="' + style + '">' + (isHead ? 'Colonne '+(c+1) : '&nbsp;') + '</' + (isHead?'th':'td') + '>';
+    }
+    tbl += '</tr>';
+  }
+  tbl += '</table>';
+  document.execCommand('insertHTML', false, tbl);
+}
+
+async function loadWordFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const badgeBar = document.getElementById('wordFileBadgeBar');
+  badgeBar.innerHTML = '<div class="word-filename-badge">📄 <span>' + file.name + '</span> · ' + formatFileSize(file.size) + '</div>';
+
+  if (ext === 'txt' || ext === 'rtf') {
+    const text = await file.text();
+    showWordEditor(text.replace(/\n/g, '<br>'));
+    return;
+  }
+
+  if (ext === 'docx' || ext === 'doc') {
+    if (typeof mammoth === 'undefined') {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
+    }
+    const arrayBuffer = await file.arrayBuffer();
+    try {
+      const result = await mammoth.convertToHtml({ arrayBuffer });
+      showWordEditor(result.value || '<p>Document importé — commencez à modifier.</p>');
+    } catch(e) {
+      showWordEditor('<p style="color:#888">Impossible de lire ce fichier. Réenregistrez-le en .docx depuis Word puis réessayez.</p>');
+    }
+    return;
+  }
+  const text = await file.text();
+  showWordEditor('<pre style="font-family:inherit;white-space:pre-wrap">' + text + '</pre>');
+}
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+function showWordEditor(html) {
+  document.getElementById('wordImportStep1').style.display = 'none';
+  document.getElementById('wordImportStep2').style.display = 'block';
+  document.getElementById('wordEditorArea').innerHTML = html;
+  toast('Document chargé — modifiez librement');
+}
+
+function resetWordImport() {
+  document.getElementById('wordImportStep1').style.display = 'block';
+  document.getElementById('wordImportStep2').style.display = 'none';
+  document.getElementById('wordEditorArea').innerHTML = '';
+  document.getElementById('wordFileBadgeBar').innerHTML = '';
+}
+
+function printWordDoc() {
+  const content = document.getElementById('wordEditorArea').innerHTML;
+  const w = window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture Officielle</title><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:\'Montserrat\',sans-serif;padding:32px 40px;color:#111;line-height:1.7}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ddd;padding:8px 12px}th{background:#f5f4f0;font-weight:700}</style></head><body>' + content + '</body></html>');
+  w.document.close();
+  setTimeout(() => w.print(), 800);
+}
+
+// ============================================================
+// REAL PDF GENERATION (html2pdf.js) — remplace le rendu via
+// fenêtre d'impression qui ne produisait pas de vrai fichier PDF
+// ============================================================
+async function ensureHtml2Pdf() {
+  if (typeof html2pdf === 'undefined') {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
+  }
+}
+
+// Génère un vrai Blob PDF à partir d'un élément HTML
+async function generateRealPdfBlob(sourceHtml, filename) {
+  await ensureHtml2Pdf();
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'background:#fff;color:#111;padding:28px 34px;width:780px;font-family:Montserrat,sans-serif;line-height:1.7';
+  wrapper.innerHTML = sourceHtml;
+  document.body.appendChild(wrapper);
+  const opts = {
+    margin: 0,
+    filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all','css','legacy'] }
+  };
+  try {
+    const blob = await html2pdf().set(opts).from(wrapper).outputPdf('blob');
+    return blob;
+  } finally {
+    wrapper.remove();
+  }
+}
+
+function downloadBlobFile(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+// Tente un partage natif du FICHIER (vrai PDF, vrai vCard, etc.)
+// et retombe sur le téléchargement si le partage de fichier n'est pas supporté
+async function shareOrDownloadFile(blob, filename, mimeType, shareTitle, shareText) {
+  try {
+    const file = new File([blob], filename, { type: mimeType });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: shareTitle, text: shareText });
+      toast('✓ Partagé avec succès');
+      return true;
+    }
+  } catch (e) { /* fallback ci-dessous */ }
+  downloadBlobFile(blob, filename);
+  toast('📥 Fichier téléchargé — partagez-le depuis vos fichiers');
+  return false;
+}
+
+async function exportWordToPDF() {
+  const content = document.getElementById('wordEditorArea')?.innerHTML?.trim();
+  if (!content || content.length < 5) { toast('Aucun document Word chargé','⚠'); return; }
+  toast('⏳ Génération du PDF en cours…');
+  try {
+    const badge = document.getElementById('wordFileBadgeBar')?.querySelector('span')?.textContent || 'Facture';
+    const filename = (badge.replace(/\.[^/.]+$/,'') || 'facture') + '.pdf';
+    const blob = await generateRealPdfBlob(content, filename);
+    store.lastWordPdfBlob = blob;
+    store.lastWordPdfName = filename;
+    downloadBlobFile(blob, filename);
+    toast('✓ PDF généré et téléchargé');
+  } catch (e) {
+    toast('Erreur de conversion PDF : ' + e.message, '⚠');
+  }
+}
+
+async function shareWordDocFile() {
+  const content = document.getElementById('wordEditorArea')?.innerHTML?.trim();
+  if (!content || content.length < 5) { toast('Aucun document Word chargé','⚠'); return; }
+  toast('⏳ Préparation du PDF à partager…');
+  try {
+    let blob = store.lastWordPdfBlob;
+    const filename = store.lastWordPdfName || 'facture.pdf';
+    if (!blob) {
+      blob = await generateRealPdfBlob(content, filename);
+      store.lastWordPdfBlob = blob;
+      store.lastWordPdfName = filename;
+    }
+    await shareOrDownloadFile(blob, filename, 'application/pdf', 'Facture Officielle', 'Voici ma facture au format PDF');
+  } catch (e) {
+    toast('Erreur : ' + e.message, '⚠');
+  }
+}
+
+async function shareWordDocNFC() {
+  const content = document.getElementById('wordEditorArea')?.innerHTML?.trim();
+  if (!content || content.length < 5) { toast('Aucun document Word chargé','⚠'); return; }
+  toast('⏳ Envoi vers le cloud…');
+  let url;
+  try {
+    let blob = store.lastWordPdfBlob;
+    const filename = store.lastWordPdfName || 'Facture_Word.pdf';
+    if (!blob) {
+      blob = await generateRealPdfBlob(content, filename);
+      store.lastWordPdfBlob = blob;
+      store.lastWordPdfName = filename;
+    }
+    url = await createCloudShareSingleFile(blob, filename, 'application/pdf', 'Facture Officielle', '');
+  } catch (e) {
+    toast('Erreur d\'envoi : ' + e.message, '⚠');
+    return;
+  }
+  if ('NDEFReader' in window) {
+    const ndef = new NDEFReader();
+    ndef.write({ records: [{ recordType: 'url', data: url }] })
+      .then(() => toast('⬡ Document Word programmé sur la NFC Card'))
+      .catch(() => {
+        if (navigator.share) {
+          const text = document.getElementById('wordEditorArea').innerText.substring(0,300);
+          navigator.share({ title: 'Facture Officielle', text: text+'…', url }).then(()=>toast('Partagé !')).catch(()=>{});
+        } else {
+          navigator.clipboard?.writeText(url).then(()=>toast('Lien copié — NFC indisponible sur cet appareil'));
+        }
+      });
+  } else {
+    if (navigator.share) {
+      const text = document.getElementById('wordEditorArea').innerText.substring(0,300);
+      navigator.share({ title: 'Facture Officielle', text: text+'…', url }).then(()=>toast('Partagé !')).catch(()=>{});
+    } else {
+      navigator.clipboard?.writeText(url).then(()=>toast('Lien copié !'));
+    }
+  }
+}
+
+function shareWordDoc() {
+  if (navigator.share) {
+    const text = document.getElementById('wordEditorArea').innerText.substring(0, 300);
+    navigator.share({ title: 'Facture Officielle', text: text + '…', url: window.location.href })
+      .then(() => toast('Partagé avec succès')).catch(() => {});
+  } else {
+    const text = document.getElementById('wordEditorArea').innerText;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => toast('Contenu copié — collez dans WhatsApp, email, etc.'));
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+      toast('Contenu copié dans le presse-papiers');
+    }
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.getElementById('invDate').value = new Date().toISOString().split('T')[0];
+authReady.then(() => {
+  loadStoreFromCloud();
+  initAutosave();
+  initAccountBar();
+});
+</script>
+</body>
+</html> 
