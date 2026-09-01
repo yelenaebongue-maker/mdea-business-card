@@ -1,32 +1,51 @@
-import { getUser } from '@netlify/identity';
 import { getStore } from '@netlify/blobs';
 
-// Remplace : db.collection('shares').doc(id).set({...})
-// Les fichiers eux-mêmes sont déjà dans Blobs à ce stade — envoyés en amont,
-// en streaming, par netlify/edge-functions/upload-share-file.mjs (pas de
-// limite de taille pratique, contrairement à cette fonction "classique").
-export default async (req) => {
-  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+// Crée OU met à jour (si le même id est réutilisé, ex: carte NFC stable)
+// un enregistrement de partage : { title, text, files:[{name,type,size,url}] }
+export const handler = async (event, context) => {
+  const user = context.clientContext && context.clientContext.user;
+  if (!user) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Non authentifié' }) };
+  }
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: 'Method Not Allowed' };
+  }
 
-  const user = await getUser();
-  if (!user) return new Response('Non authentifié', { status: 401 });
+  let payload;
+  try {
+    payload = JSON.parse(event.body || '{}');
+  } catch (e) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'JSON invalide' }) };
+  }
 
-  let body;
-  try { body = await req.json(); }
-  catch (e) { return new Response('JSON invalide', { status: 400 }); }
+  const { id, title, text, files, extra } = payload;
+  if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'id manquant' }) };
 
-  const { id, title = 'MDEA Business Card', text = '', files = [], extra = {} } = body || {};
-  if (!id) return new Response('id manquant', { status: 400 });
+  const filesWithUrls = (files || []).map(f => ({
+    name: f.name,
+    type: f.type,
+    size: f.size,
+    url: `/.netlify/functions/get-share-file?share=${encodeURIComponent(id)}&name=${encodeURIComponent(f.name)}`
+  }));
 
-  const sharesMeta = getStore({ name: 'shares-meta', consistency: 'strong' });
-  await sharesMeta.setJSON(id, {
-    createdAt: Date.now(),
-    ownerId: user.id,
-    title,
-    text,
-    files, // [{ name, type, size }]
-    ...extra
-  });
+  const record = {
+    title: title || 'MDEA Business Card',
+    text: text || '',
+    files: filesWithUrls,
+    extra: extra || {},
+    ownerId: user.sub,
+    updatedAt: Date.now()
+  };
 
-  return Response.json({ id });
+  try {
+    const store = getStore('mdea-shares');
+    await store.setJSON(id, record);
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ok: true, id })
+    };
+  } catch (e) {
+    return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
+  }
 };

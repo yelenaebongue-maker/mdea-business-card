@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@netlify/blobs": "^8.1.0",
-    "@netlify/identity": "^1.0.0"
+    "@netlify/identity": "^1.0.0",
+    "busboy": "^1.6.0"
   }
 }

@@ -1,26 +1,21 @@
 import { getStore } from '@netlify/blobs';
 
-// Remplace : db.collection('shares').doc(id).get()
-// Public volontairement : n'importe quel téléphone qui tape la carte NFC
-// doit pouvoir ouvrir share.html sans être connecté.
-export default async (req) => {
-  if (req.method !== 'GET') return new Response('Method not allowed', { status: 405 });
+// Public (pas d'authentification) : c'est ce que lit share.html quand
+// quelqu'un tape la carte NFC ou ouvre le lien.
+export const handler = async (event) => {
+  const id = event.queryStringParameters && event.queryStringParameters.id;
+  if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'id manquant' }) };
 
-  const url = new URL(req.url);
-  const id = url.searchParams.get('id');
-  if (!id) return new Response('Paramètre id manquant', { status: 400 });
-
-  const sharesMeta = getStore({ name: 'shares-meta', consistency: 'strong' });
-  const data = await sharesMeta.get(id, { type: 'json' });
-  if (!data) return new Response('Partage introuvable', { status: 404 });
-
-  // On transforme chaque fichier en URL réellement récupérable : l'Edge
-  // Function get-shared-file sert les octets stockés dans Blobs, sans
-  // limite de taille pratique (streaming).
-  const files = (data.files || []).map(f => ({
-    ...f,
-    url: `/api/shared-file?id=${encodeURIComponent(id)}&name=${encodeURIComponent(f.name)}`
-  }));
-
-  return Response.json({ ...data, files });
+  try {
+    const store = getStore('mdea-shares');
+    const data = await store.get(id, { type: 'json' });
+    if (!data) return { statusCode: 404, body: JSON.stringify({ error: 'introuvable' }) };
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      body: JSON.stringify(data)
+    };
+  } catch (e) {
+    return { statusCode: 404, body: JSON.stringify({ error: 'introuvable' }) };
+  }
 };

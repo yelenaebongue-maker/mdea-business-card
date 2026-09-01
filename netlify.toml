@@ -1,13 +1,8 @@
 [build]
-  publish = "."
   functions = "netlify/functions"
 
-[functions]
-  node_bundler = "esbuild"
-
-# Redirige proprement /login vers login.html (pratique pour les liens
-# window.location.href = '/login' déjà utilisés dans le code existant)
 [[redirects]]
-  from = "/login"
-  to = "/login.html"
+  from = "/api/upload-file"
+  to = "/.netlify/functions/upload-file"
   status = 200
+  force = true

@@ -3538,7 +3538,8 @@ async function activateNFC() {
   let url;
   try {
     const { files, text } = await buildCombinedShareFiles(sel);
-    url = await createCloudShare({ files, text, title: 'MDEA Business Card' });
+    const cardId = await getStableCardId(); // lien fixe, ne change jamais
+    url = await createCloudShare({ files, text, title: 'MDEA Business Card', fixedId: cardId });
   } catch (e) {
     toast('Erreur d\'envoi vers le cloud : ' + e.message, '⚠');
     return;
@@ -3553,7 +3554,7 @@ async function activateNFC() {
       .catch(e => toast('Erreur NFC : ' + e.message, '⚠'));
   } else {
     navigator.clipboard?.writeText(url).then(() =>
-      toast(`Lien copié (${total} élément(s)) — NFC non disponible sur cet appareil`)
+      toast(`✓ Contenu mis à jour (${total} élément(s)). Lien copié — à écrire UNE SEULE FOIS sur votre tag avec une appli comme "NFC Tools" (iPhone/Android). Ensuite, changez juste votre sélection ici, le tag n'a plus jamais besoin d'être réécrit.`)
     ).catch(() => toast(`${total} élément(s) sélectionnés — copiez le lien ci-dessus`));
   }
 }
@@ -3733,9 +3734,26 @@ async function uploadFileToShare(shareId, file) {
   return res.json(); // { ok, name, type, size }
 }
 
+// Identifiant STABLE de la carte de l'utilisateur connecté : ne change
+// jamais, donc le lien écrit une seule fois sur le tag NFC reste valide
+// pour toujours, même quand le contenu (la sélection) change derrière.
+async function getStableCardId() {
+  try {
+    const user = await NetlifyAuth.getUser();
+    if (user && user.id) return 'card-' + user.id;
+  } catch (e) {}
+  // Repli si jamais on n'a pas pu lire l'utilisateur (ne devrait pas arriver)
+  let id = localStorage.getItem('mdea_card_id');
+  if (!id) { id = generateId(); localStorage.setItem('mdea_card_id', id); }
+  return id;
+}
+
 // files: tableau de Blob/File réels — text: résumé textuel — title: titre affiché
-async function createCloudShare({ files = [], text = '', title = 'MDEA Business Card', extra = {} }) {
-  const shareId = generateId();
+// fixedId: si fourni, réutilise TOUJOURS le même id de partage (lien stable),
+// au lieu d'en générer un nouveau à chaque appel (utile pour les partages
+// "ponctuels" comme une facture ou un pitch, qui eux gardent un id unique).
+async function createCloudShare({ files = [], text = '', title = 'MDEA Business Card', extra = {}, fixedId = null }) {
+  const shareId = fixedId || generateId();
   const uploaded = [];
   for (const f of files) {
     const result = await uploadFileToShare(shareId, f);
