@@ -41,7 +41,7 @@ export const handler = async (event, context) => {
       fileBuffer.byteOffset,
       fileBuffer.byteOffset + fileBuffer.byteLength
     );
-    const store = getStore('mdea-share-files');
+    const store = getStore('mdea-share-files', { consistency: 'strong' });
     await store.set(`${shareId}/${filename}`, arrayBuffer, { metadata: { type: mimeType } });
     return {
       statusCode: 200,

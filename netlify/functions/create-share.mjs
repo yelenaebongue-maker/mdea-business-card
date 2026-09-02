@@ -39,7 +39,7 @@ export const handler = async (event, context) => {
   };
 
   try {
-    const store = getStore('mdea-shares');
+    const store = getStore('mdea-shares', { consistency: 'strong' });
     await store.setJSON(id, record);
     return {
       statusCode: 200,

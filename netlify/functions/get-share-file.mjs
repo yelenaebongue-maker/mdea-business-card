@@ -8,7 +8,7 @@ export const handler = async (event) => {
   if (!shareId || !name) return { statusCode: 400, body: 'Paramètres manquants' };
 
   try {
-    const store = getStore('mdea-share-files');
+    const store = getStore('mdea-share-files', { consistency: 'strong' });
     const blob = await store.getWithMetadata(`${shareId}/${name}`, { type: 'arrayBuffer' });
     if (!blob) return { statusCode: 404, body: 'Introuvable' };
     const type = (blob.metadata && blob.metadata.type) || 'application/octet-stream';

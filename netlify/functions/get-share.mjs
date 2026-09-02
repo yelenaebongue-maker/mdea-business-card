@@ -8,7 +8,7 @@ export const handler = async (event) => {
   if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'id manquant' }) };
 
   try {
-    const store = getStore('mdea-shares');
+    const store = getStore('mdea-shares', { consistency: 'strong' });
     const data = await store.get(id, { type: 'json' });
     if (!data) return { statusCode: 404, body: JSON.stringify({ error: 'introuvable' }) };
     return {
