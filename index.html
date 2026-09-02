@@ -2677,14 +2677,32 @@ function openProjectModal(id) {
   ['projTitle','projCategory','projYear','projRole','projUrl','projDesc','projTags'].forEach(f => {
     document.getElementById(f).value = '';
   });
+  store.editingProjectId = null;
+
+  if (id) {
+    const p = store.projects.find(x => x.id === id);
+    if (p) {
+      store.editingProjectId = id;
+      document.getElementById('projTitle').value = p.title || '';
+      document.getElementById('projCategory').value = p.category || '';
+      document.getElementById('projYear').value = p.year || '';
+      document.getElementById('projRole').value = p.role || '';
+      document.getElementById('projUrl').value = p.url || '';
+      document.getElementById('projDesc').value = p.desc || '';
+      document.getElementById('projTags').value = (p.tags || []).join(', ');
+      if (p.image) {
+        store.projectImageData = p.image;
+        document.getElementById('projectImagePreview').innerHTML = `<img src="${p.image}" style="width:100%;height:100%;object-fit:cover">`;
+      }
+    }
+  }
   openModal('projectModal');
 }
 
 function saveProject() {
   const title = document.getElementById('projTitle').value.trim();
   if (!title) { toast('Le nom du projet est requis','⚠'); return; }
-  const project = {
-    id:       Date.now().toString(),
+  const fields = {
     title,
     category: document.getElementById('projCategory').value.trim(),
     year:     document.getElementById('projYear').value.trim(),
@@ -2694,10 +2712,20 @@ function saveProject() {
     tags:     document.getElementById('projTags').value.split(',').map(s=>s.trim()).filter(Boolean),
     image:    store.projectImageData
   };
-  store.projects.push(project);
-  closeModal('projectModal');
-  renderProjects();
-  toast('Projet ajouté avec succès');
+
+  if (store.editingProjectId) {
+    const existing = store.projects.find(p => p.id === store.editingProjectId);
+    if (existing) Object.assign(existing, fields);
+    store.editingProjectId = null;
+    closeModal('projectModal');
+    renderProjects();
+    toast('Projet modifié avec succès');
+  } else {
+    store.projects.push({ id: Date.now().toString(), ...fields });
+    closeModal('projectModal');
+    renderProjects();
+    toast('Projet ajouté avec succès');
+  }
 }
 
 function renderProjects() {
@@ -2720,6 +2748,7 @@ function renderProjects() {
       </div>
       <div class="portfolio-footer">
         ${p.url ? `<a href="${p.url}" target="_blank" class="btn-outline">🔗 Voir</a>` : ''}
+        <button class="btn-outline" onclick="openProjectModal('${p.id}')">✎ Modifier</button>
         <button class="btn-ghost" onclick="shareProjectFile('${p.id}')" title="Partager ce projet">⬡</button>
         <button class="btn-danger" onclick="deleteProject('${p.id}')">✕ Retirer</button>
       </div>
@@ -2766,10 +2795,22 @@ async function shareProjectFile(id) {
 // ============================================================
 // SOCIALS
 // ============================================================
-function openSocialModal() {
+function openSocialModal(id) {
   ['socialPlatform','socialHandle','socialFollowers','socialUrl'].forEach(f => {
     document.getElementById(f).value = '';
   });
+  store.editingSocialId = null;
+
+  if (id) {
+    const s = store.socials.find(x => x.id === id);
+    if (s) {
+      store.editingSocialId = id;
+      document.getElementById('socialPlatform').value = s.platform || '';
+      document.getElementById('socialHandle').value = s.handle || '';
+      document.getElementById('socialFollowers').value = s.followers || '';
+      document.getElementById('socialUrl').value = s.url || '';
+    }
+  }
   openModal('socialModal');
 }
 
@@ -2793,16 +2834,26 @@ function saveSocial() {
   const platform = document.getElementById('socialPlatform').value;
   const url = document.getElementById('socialUrl').value.trim();
   if (!platform || !url) { toast('Plateforme et URL requis','⚠'); return; }
-  store.socials.push({
-    id: Date.now().toString(),
+  const fields = {
     platform,
     handle:    document.getElementById('socialHandle').value.trim(),
     followers: document.getElementById('socialFollowers').value.trim(),
     url
-  });
-  closeModal('socialModal');
-  renderSocials();
-  toast('Réseau social ajouté');
+  };
+
+  if (store.editingSocialId) {
+    const existing = store.socials.find(s => s.id === store.editingSocialId);
+    if (existing) Object.assign(existing, fields);
+    store.editingSocialId = null;
+    closeModal('socialModal');
+    renderSocials();
+    toast('Réseau social modifié');
+  } else {
+    store.socials.push({ id: Date.now().toString(), ...fields });
+    closeModal('socialModal');
+    renderSocials();
+    toast('Réseau social ajouté');
+  }
 }
 
 function renderSocials() {
@@ -2821,6 +2872,7 @@ function renderSocials() {
         </div>
         <div class="social-actions">
           <a href="${s.url}" target="_blank" class="btn-icon">🔗</a>
+          <button class="btn-icon" onclick="openSocialModal('${s.id}')" title="Modifier">✎</button>
           <button class="btn-icon" onclick="deleteSocial('${s.id}')" style="color:#e05050">✕</button>
         </div>
       </div>
@@ -2884,6 +2936,8 @@ function renderPitches() {
       </div>
       <div class="pitch-deck-footer">
         <button class="btn-outline" onclick="renamePitch('${p.id}')">✎ Renommer</button>
+        <button class="btn-outline" onclick="document.getElementById('pitchReplaceInput_${p.id}').click()">⇅ Remplacer</button>
+        <input type="file" id="pitchReplaceInput_${p.id}" style="display:none" accept=".pdf,.ppt,.pptx,.jpg,.jpeg,.png" onchange="replacePitchFile('${p.id}', event)">
         <button class="btn-ghost" onclick="sharePitchNFC('${p.id}')" title="Partager via NFC">⬡</button>
         <button class="btn-danger" onclick="deletePitch('${p.id}')">✕</button>
         <div class="pitch-active-toggle">
@@ -2911,6 +2965,24 @@ function renamePitch(id) {
   if (!p) return;
   const name = prompt('Nouveau nom :', p.name);
   if (name && name.trim()) { p.name = name.trim(); renderPitches(); toast('Renommé avec succès'); }
+}
+function replacePitchFile(id, event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const p = store.pitches.find(x => x.id === id);
+  if (!p) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    p.file = e.target.result;
+    p.filename = file.name;
+    p.size = formatFileSize(file.size);
+    p.type = file.name.split('.').pop().toUpperCase();
+    p.date = new Date().toLocaleDateString('fr-FR');
+    renderPitches();
+    toast(`Fichier de "${p.name}" remplacé`);
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
 }
 function dataURLtoBlob(dataURL) {
   const [meta, b64] = dataURL.split(',');
@@ -3721,17 +3793,19 @@ function copyShareLink() {
 // n'importe quel téléphone qui tape la carte ouvre share.html, qui
 // va chercher le contenu réel côté serveur.
 // ============================================================
-async function uploadFileToShare(shareId, file) {
-  const fd = new FormData();
-  fd.append('file', file, file.name || 'fichier');
-  const token = await NetlifyAuth.getToken();
-  const res = await fetch(`/api/upload-file?share=${encodeURIComponent(shareId)}`, {
-    method: 'POST',
-    headers: token ? { Authorization: 'Bearer ' + token } : {},
-    body: fd
+// Convertit un fichier en base64 directement dans le navigateur (pas d'upload
+// séparé) — le contenu part avec le reste du partage en un seul appel fiable.
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1] || '');
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
-  if (!res.ok) throw new Error('Échec de l\'envoi du fichier "' + (file.name || '') + '" (http ' + res.status + ')');
-  return res.json(); // { ok, name, type, size }
+}
+async function uploadFileToShare(shareId, file) {
+  const dataBase64 = await fileToBase64(file);
+  return { name: file.name || 'fichier', type: file.type || 'application/octet-stream', size: file.size, dataBase64 };
 }
 
 // Identifiant STABLE de la carte de l'utilisateur connecté : ne change
@@ -3757,7 +3831,7 @@ async function createCloudShare({ files = [], text = '', title = 'MDEA Business 
   const uploaded = [];
   for (const f of files) {
     const result = await uploadFileToShare(shareId, f);
-    uploaded.push({ name: result.name, type: result.type, size: result.size });
+    uploaded.push({ name: result.name, type: result.type, size: result.size, dataBase64: result.dataBase64 });
   }
   const res = await NetlifyAuth.authedFetch('/.netlify/functions/create-share', {
     method: 'POST',
