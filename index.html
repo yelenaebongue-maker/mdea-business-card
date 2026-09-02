@@ -3763,7 +3763,11 @@ async function createCloudShare({ files = [], text = '', title = 'MDEA Business 
     method: 'POST',
     body: JSON.stringify({ id: shareId, title, text, files: uploaded, extra })
   });
-  if (!res.ok) throw new Error('Échec de création du partage (http ' + res.status + ')');
+  if (!res.ok) {
+    let detail = '';
+    try { detail = (await res.json()).error || ''; } catch (e) {}
+    throw new Error(`Échec de création du partage (http ${res.status})${detail ? ' — ' + detail : ''}`);
+  }
   return `${window.location.origin}/share.html?id=${shareId}`;
 }
 
