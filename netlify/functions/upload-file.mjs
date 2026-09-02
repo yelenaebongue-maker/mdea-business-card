@@ -1,4 +1,4 @@
-import { getStore } from '@netlify/blobs';
+import { connectLambda, getStore } from '@netlify/blobs';
 import Busboy from 'busboy';
 
 function parseMultipart(event) {
@@ -25,6 +25,7 @@ function parseMultipart(event) {
 }
 
 export const handler = async (event, context) => {
+  connectLambda(event);
   const user = context.clientContext && context.clientContext.user;
   if (!user) return { statusCode: 401, body: JSON.stringify({ error: 'Non authentifié' }) };
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method Not Allowed' };

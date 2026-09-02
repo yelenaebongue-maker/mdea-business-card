@@ -1,16 +1,25 @@
-import { getUser } from '@netlify/identity';
-import { getStore } from '@netlify/blobs';
+import { connectLambda, getStore } from '@netlify/blobs';
 
-// Remplace : storage.ref().child(`owners/${uid}/data.json`).getDownloadURL() + fetch(url)
-export default async (req) => {
-  if (req.method !== 'GET') return new Response('Method not allowed', { status: 405 });
+// Recharge les données complètes de l'utilisateur connecté
+// (profils, projets, réseaux, pitches, factures, nom d'entreprise).
+export const handler = async (event, context) => {
+  connectLambda(event);
+  const user = context.clientContext && context.clientContext.user;
+  if (!user) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Non authentifié' }) };
+  }
 
-  const user = await getUser();
-  if (!user) return new Response('Non authentifié', { status: 401 });
-
-  const owners = getStore({ name: 'owners', consistency: 'strong' });
-  const data = await owners.get(`${user.id}/data.json`, { type: 'json' });
-
-  if (!data) return new Response('Aucune donnée sauvegardée', { status: 404 });
-  return Response.json(data);
+  const uid = user.sub;
+  try {
+    const store = getStore('mdea-data');
+    const data = await store.get(`owners/${uid}/data.json`, { type: 'json' });
+    if (!data) return { statusCode: 404, body: JSON.stringify({ error: 'Aucune donnée' }) };
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    };
+  } catch (e) {
+    return { statusCode: 404, body: JSON.stringify({ error: 'Aucune donnée' }) };
+  }
 };

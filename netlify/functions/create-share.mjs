@@ -1,8 +1,9 @@
-import { getStore } from '@netlify/blobs';
+import { connectLambda, getStore } from '@netlify/blobs';
 
 // Crée OU met à jour (si le même id est réutilisé, ex: carte NFC stable)
 // un enregistrement de partage : { title, text, files:[{name,type,size,url}] }
 export const handler = async (event, context) => {
+  connectLambda(event);
   const user = context.clientContext && context.clientContext.user;
   if (!user) {
     return { statusCode: 401, body: JSON.stringify({ error: 'Non authentifié' }) };

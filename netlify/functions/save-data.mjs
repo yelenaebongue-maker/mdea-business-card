@@ -1,33 +1,36 @@
-import { getUser } from '@netlify/identity';
-import { getStore } from '@netlify/blobs';
+import { connectLambda, getStore } from '@netlify/blobs';
 
-// Remplace : storage.ref().child(`owners/${uid}/data.json`).put(...)
-//        et  storage.ref().child(`public-cards/${uid}/card.json`).put(...)
-export default async (req) => {
-  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
-
-  const user = await getUser();
-  if (!user) return new Response('Non authentifié', { status: 401 });
-
-  let body;
-  try { body = await req.json(); }
-  catch (e) { return new Response('JSON invalide', { status: 400 }); }
-
-  const { full, public: publicSnapshot } = body || {};
-  if (!full || !publicSnapshot) return new Response('Données manquantes', { status: 400 });
-
-  const owners = getStore({ name: 'owners', consistency: 'strong' });
-  const publicCards = getStore({ name: 'public-cards', consistency: 'strong' });
-
-  await owners.setJSON(`${user.id}/data.json`, full);
-  await publicCards.setJSON(`${user.id}/card.json`, publicSnapshot);
-
-  // Si un username est défini sur le profil Identity, on publie aussi
-  // sous ce nom pour permettre une page publique tondomaine.com/{username}.
-  const username = user.user_metadata && user.user_metadata.username;
-  if (username) {
-    await publicCards.setJSON(`by-username/${username}.json`, publicSnapshot);
+// Sauvegarde les données de l'utilisateur connecté :
+// - "full" (tout, y compris ce qui reste privé comme les factures)
+// - "public" (le sous-ensemble affichable publiquement)
+export const handler = async (event, context) => {
+  connectLambda(event);
+  const user = context.clientContext && context.clientContext.user;
+  if (!user) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Non authentifié' }) };
+  }
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  return Response.json({ ok: true });
+  let payload;
+  try {
+    payload = JSON.parse(event.body || '{}');
+  } catch (e) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'JSON invalide' }) };
+  }
+
+  const uid = user.sub;
+  try {
+    const store = getStore('mdea-data');
+    await store.setJSON(`owners/${uid}/data.json`, payload.full || {});
+    await store.setJSON(`public-cards/${uid}/card.json`, payload.public || {});
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ok: true })
+    };
+  } catch (e) {
+    return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
+  }
 };

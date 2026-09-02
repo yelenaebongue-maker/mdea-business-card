@@ -1,8 +1,9 @@
-import { getStore } from '@netlify/blobs';
+import { connectLambda, getStore } from '@netlify/blobs';
 
 // Public (pas d'authentification) : c'est ce que lit share.html quand
 // quelqu'un tape la carte NFC ou ouvre le lien.
 export const handler = async (event) => {
+  connectLambda(event);
   const id = event.queryStringParameters && event.queryStringParameters.id;
   if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'id manquant' }) };
 

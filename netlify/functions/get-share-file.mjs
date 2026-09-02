@@ -1,7 +1,8 @@
-import { getStore } from '@netlify/blobs';
+import { connectLambda, getStore } from '@netlify/blobs';
 
 // Public : sert le contenu réel (vCard, PDF, image...) référencé dans un partage.
 export const handler = async (event) => {
+  connectLambda(event);
   const shareId = event.queryStringParameters && event.queryStringParameters.share;
   const name = event.queryStringParameters && event.queryStringParameters.name;
   if (!shareId || !name) return { statusCode: 400, body: 'Paramètres manquants' };
