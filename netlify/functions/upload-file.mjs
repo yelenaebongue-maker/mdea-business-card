@@ -35,8 +35,14 @@ export const handler = async (event, context) => {
 
   try {
     const { fileBuffer, filename, mimeType } = await parseMultipart(event);
+    // @netlify/blobs n'accepte que ArrayBuffer | Blob | string — un Buffer
+    // Node brut n'est PAS reconnu et provoque un fichier vide/corrompu.
+    const arrayBuffer = fileBuffer.buffer.slice(
+      fileBuffer.byteOffset,
+      fileBuffer.byteOffset + fileBuffer.byteLength
+    );
     const store = getStore('mdea-share-files');
-    await store.set(`${shareId}/${filename}`, fileBuffer, { metadata: { type: mimeType } });
+    await store.set(`${shareId}/${filename}`, arrayBuffer, { metadata: { type: mimeType } });
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
