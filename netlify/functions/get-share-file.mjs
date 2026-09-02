@@ -5,7 +5,21 @@ export const handler = async (event) => {
   connectLambda(event);
   const shareId = event.queryStringParameters && event.queryStringParameters.share;
   const name = event.queryStringParameters && event.queryStringParameters.name;
-  if (!shareId || !name) return { statusCode: 400, body: 'Paramètres manquants' };
+  if (!shareId || !name) {
+    return {
+      statusCode: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        error: 'Paramètres manquants',
+        debug: {
+          rawUrl: event.rawUrl || null,
+          path: event.path || null,
+          queryStringParameters: event.queryStringParameters || null,
+          httpMethod: event.httpMethod || null
+        }
+      })
+    };
+  }
 
   try {
     const store = getStore('mdea-share-files', { consistency: 'strong' });
