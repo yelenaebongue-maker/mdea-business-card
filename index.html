@@ -2236,18 +2236,28 @@ async function externalizeDataUrl(dataUrl, bucket, hintName) {
   if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
     return dataUrl;
   }
-  const blob = dataURLtoBlob(dataUrl);
-  const ext = (blob.type.split('/')[1] || 'bin').replace('jpeg', 'jpg');
-  const name = `${hintName || generateId()}.${ext}`;
-  const fd = new FormData();
-  fd.append('file', blob, name);
-  const res = await NetlifyAuth.authedFetch(`/api/upload-file?share=${encodeURIComponent(bucket)}`, {
-    method: 'POST',
-    body: fd
-  });
-  if (!res.ok) throw new Error(`Échec de l'upload de "${name}" (http ${res.status})`);
-  const result = await res.json();
-  return `/api/shared-file?id=${encodeURIComponent(bucket)}&name=${encodeURIComponent(result.name)}`;
+  try {
+    const blob = dataURLtoBlob(dataUrl);
+    const ext = (blob.type.split('/')[1] || 'bin').replace('jpeg', 'jpg');
+    const name = `${hintName || generateId()}.${ext}`;
+    const fd = new FormData();
+    fd.append('file', blob, name);
+    const res = await NetlifyAuth.authedFetch(`/api/upload-file?share=${encodeURIComponent(bucket)}`, {
+      method: 'POST',
+      body: fd
+    });
+    if (!res.ok) throw new Error(`http ${res.status}`);
+    const result = await res.json();
+    return `/api/shared-file?id=${encodeURIComponent(bucket)}&name=${encodeURIComponent(result.name)}`;
+  } catch (e) {
+    // IMPORTANT : on ne bloque JAMAIS toute la sauvegarde pour un seul
+    // fichier qui échoue à s'externaliser (edge function pas encore
+    // déployée, réseau coupé, etc.). On garde la data: URL telle quelle
+    // pour cette fois — elle sera réessayée à la prochaine sauvegarde — et
+    // on laisse le texte du profil/projet se sauvegarder normalement.
+    console.warn('Externalisation média échouée pour', hintName, e);
+    return dataUrl;
+  }
 }
 
 // Parcourt le store et remplace toutes les images/fichiers encore en
@@ -2288,12 +2298,15 @@ async function saveStoreToCloud() {
   try {
     // Remplace toute image/fichier encore embarqué en base64 par une vraie
     // URL hébergée — voir le commentaire d'externalizeStoreMedia() ci-dessus.
+    // NOTE : on ne re-render PAS l'écran après ça. Les grilles (portfolio,
+    // profils, pitchs) sont surveillées par un MutationObserver qui
+    // replanifie une sauvegarde cloud dès qu'elles changent — re-render ici
+    // relançait donc une boucle infinie de sauvegardes (et perturbait
+    // l'affichage, ex: bouton de partage qui disparaissait). Les nouvelles
+    // URLs sont déjà dans `store` ; elles s'afficheront au prochain rendu
+    // naturel (ajout/édition suivante) sans qu'on ait besoin de forcer quoi
+    // que ce soit ici.
     await externalizeStoreMedia();
-    // Reflète tout de suite les nouvelles URLs à l'écran (évite de garder
-    // d'énormes data: URL en mémoire/dans le DOM une fois uploadées).
-    renderProfiles();
-    renderProjects();
-    renderPitches();
 
     const fullSnapshot = {
       profiles: store.profiles,
@@ -2918,7 +2931,7 @@ async function shareProjectFile(id) {
 
   if (p.image) {
     try {
-      const blob = dataURLtoBlob(p.image);
+      const blob = await mediaValueToBlob(p.image);
       const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg','jpg');
       const filename = (p.title || 'projet').replace(/\s+/g,'_') + '.' + ext;
       await shareOrDownloadFile(blob, filename, blob.type, p.title, caption);
@@ -3133,6 +3146,19 @@ function dataURLtoBlob(dataURL) {
   for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
   return new Blob([arr], { type: mime });
 }
+// Convertit soit une data: URL (base64 local), soit une vraie URL déjà
+// hébergée (photo/image/fichier externalisé par externalizeStoreMedia())
+// en Blob. Nécessaire car après une sauvegarde cloud, p.image / p.file /
+// p.photo ne sont plus forcément des data: URL — ce sont de vraies URLs
+// /api/shared-file?..., qu'il faut alors télécharger avant de pouvoir les
+// repartager en tant que fichier réel (ex: partage natif OS, NFC).
+async function mediaValueToBlob(value) {
+  if (!value) throw new Error('Fichier introuvable');
+  if (value.startsWith('data:')) return dataURLtoBlob(value);
+  const res = await fetch(value);
+  if (!res.ok) throw new Error(`Impossible de récupérer le fichier (http ${res.status})`);
+  return res.blob();
+}
 
 // Partage le VRAI fichier du pitch (PDF/PPT/image importé), pas un lien fictif
 async function sharePitchNFC(id) {
@@ -3141,7 +3167,7 @@ async function sharePitchNFC(id) {
   if (!p.file) { toast('Fichier introuvable pour ce pitch','⚠'); return; }
   toast('⏳ Préparation du fichier…');
   try {
-    const blob = dataURLtoBlob(p.file);
+    const blob = await mediaValueToBlob(p.file);
     const filename = p.filename || (p.name + '.' + (p.type || 'pdf').toLowerCase());
     await shareOrDownloadFile(blob, filename, blob.type || 'application/octet-stream', p.name, `Pitch deck — ${p.name}`);
   } catch (e) {
@@ -3718,6 +3744,149 @@ function getShareSelection() {
   return sel;
 }
 
+// ============================================================
+// PARTAGE RICHE (NFC / lien cloud) — contenu structuré
+// ============================================================
+// Convertit une data: URL en fichier hébergé DANS LE COMPARTIMENT DE CE
+// PARTAGE (shareId), ou renvoie directement la valeur si c'est déjà une
+// vraie URL (cas normal : la photo/l'image/le fichier a déjà été
+// externalisé par externalizeStoreMedia() lors d'une sauvegarde cloud).
+async function resolveMediaUrl(shareId, value, hintName) {
+  if (!value) return '';
+  if (!value.startsWith('data:')) return value; // déjà hébergé ailleurs, on réutilise tel quel
+  const blob = dataURLtoBlob(value);
+  const ext = (blob.type.split('/')[1] || 'bin').replace('jpeg', 'jpg');
+  const name = `${hintName}.${ext}`;
+  const fd = new FormData();
+  fd.append('file', blob, name);
+  const res = await NetlifyAuth.authedFetch(`/api/upload-file?share=${encodeURIComponent(shareId)}`, {
+    method: 'POST',
+    body: fd
+  });
+  if (!res.ok) throw new Error(`Échec de l'upload de "${name}" (http ${res.status})`);
+  const result = await res.json();
+  return `/api/shared-file?id=${encodeURIComponent(shareId)}&name=${encodeURIComponent(result.name)}`;
+}
+
+// Construit le contenu STRUCTURÉ (pas juste un résumé texte + fichiers en
+// vrac) que share.html affichera : bio/compétences/expériences du profil,
+// description complète + image de chaque projet du portfolio, et un lien
+// de téléchargement direct pour chaque pitch. C'est ce qui permet à la
+// personne qui tape le tag NFC de voir le VRAI contenu rempli dans
+// l'application, pas juste une liste de fichiers.
+async function buildCloudShareExtra(sel, shareId) {
+  const extra = { profile: null, projects: [], pitches: [], socials: [] };
+
+  if (sel.profiles.length > 0) {
+    const p = store.profiles.find(x => x.id === sel.profiles[0]);
+    if (p) {
+      extra.profile = {
+        firstName: p.firstName || '',
+        lastName: p.lastName || '',
+        title: p.title || '',
+        company: p.company || '',
+        location: p.location || '',
+        email: p.email || '',
+        phone: p.phone || '',
+        website: p.website || '',
+        bio: p.bio || '',
+        skills: p.skills || [],
+        experiences: p.experiences || [],
+        education: p.education || [],
+        photoUrl: await resolveMediaUrl(shareId, p.photo, 'profil_photo'),
+        partnerLogoUrls: []
+      };
+      if (Array.isArray(p.partnerLogos)) {
+        for (let i = 0; i < p.partnerLogos.length; i++) {
+          extra.profile.partnerLogoUrls.push(await resolveMediaUrl(shareId, p.partnerLogos[i], `partenaire_${i}`));
+        }
+      }
+    }
+  }
+
+  for (const id of sel.projects) {
+    const p = store.projects.find(x => x.id === id);
+    if (!p) continue;
+    extra.projects.push({
+      title: p.title || '',
+      category: p.category || '',
+      year: p.year || '',
+      role: p.role || '',
+      url: p.url || '',
+      desc: p.desc || '',
+      tags: p.tags || [],
+      imageUrl: await resolveMediaUrl(shareId, p.image, `projet_${p.id}`)
+    });
+  }
+
+  for (const id of sel.pitches) {
+    const p = store.pitches.find(x => x.id === id);
+    if (!p) continue;
+    extra.pitches.push({
+      name: p.name || 'Pitch',
+      fileName: p.filename || `${p.name || 'pitch'}.pdf`,
+      type: p.type || '',
+      size: p.size || '',
+      fileUrl: await resolveMediaUrl(shareId, p.file, `pitch_${p.id}`)
+    });
+  }
+
+  sel.socials.forEach(id => {
+    const s = store.socials.find(x => x.id === id);
+    if (s) extra.socials.push({ platform: s.platform || '', url: s.url || '', handle: s.handle || '' });
+  });
+
+  return extra;
+}
+
+// Fichiers "plats" à garder pour le partage cloud : uniquement la vCard
+// (pour le bouton "Enregistrer le contact" de share.html) et les vrais
+// documents à télécharger (factures, document Word). Les images de
+// projets et les pitchs ne sont PLUS dupliqués ici : ils vivent déjà dans
+// `extra` avec leurs métadonnées (titre, description...), inutile de les
+// uploader une seconde fois.
+async function buildCloudShareFlatFiles(sel) {
+  const files = [];
+  const textParts = [];
+
+  if (sel.profiles.length > 0) {
+    const p = store.profiles.find(x => x.id === sel.profiles[0]);
+    if (p) {
+      if (p.phone) {
+        const vcard = buildVCard(p, false);
+        const vBlob = new Blob([vcard], { type: 'text/vcard' });
+        files.push(new File([vBlob], `${p.firstName || 'contact'}_${p.lastName || ''}.vcf`.replace(/\s+/g,'_'), { type: 'text/vcard' }));
+      }
+      textParts.push(`${p.firstName || ''} ${p.lastName || ''} — ${p.title || ''}${p.company ? ' · ' + p.company : ''}`.trim());
+    }
+  }
+
+  for (const id of sel.invoices) {
+    const inv = store.invoices.find(i => i.id === id);
+    if (!inv) continue;
+    try {
+      renderInvoicePreview(inv);
+      const content = document.getElementById('invoicePreviewContent').innerHTML;
+      const filename = `Facture_${(inv.number || 'proforma').replace(/[^\w-]/g,'_')}.pdf`;
+      const blob = await generateRealPdfBlob(content, filename);
+      files.push(new File([blob], filename, { type: 'application/pdf' }));
+    } catch (e) { /* ignore */ }
+  }
+
+  if (sel.wordDoc) {
+    const content = document.getElementById('wordEditorArea')?.innerHTML?.trim();
+    if (content && content.length > 5) {
+      try {
+        const filename = 'Facture_Word.pdf';
+        const blob = await generateRealPdfBlob(content, filename);
+        files.push(new File([blob], filename, { type: 'application/pdf' }));
+      } catch (e) { /* ignore */ }
+    }
+  }
+
+  return { files, text: textParts.join('\n') };
+}
+
 async function activateNFC() {
   const sel = getShareSelection();
   const total = sel.profiles.length + sel.projects.length + sel.socials.length + sel.pitches.length + sel.invoices.length + (sel.wordDoc?1:0);
@@ -3750,9 +3919,10 @@ async function activateNFC() {
   toast('⏳ Envoi vers le cloud…');
   let url;
   try {
-    const { files, text } = await buildCombinedShareFiles(sel);
     const cardId = await getStableCardId(); // lien fixe, ne change jamais
-    url = await createCloudShare({ files, text, title: 'MDEA Business Card', fixedId: cardId });
+    const extra = await buildCloudShareExtra(sel, cardId);
+    const { files, text } = await buildCloudShareFlatFiles(sel);
+    url = await createCloudShare({ files, text, title: 'MDEA Business Card', extra, fixedId: cardId });
   } catch (e) {
     toast('Erreur d\'envoi vers le cloud : ' + e.message, '⚠');
     return;
@@ -3836,7 +4006,7 @@ async function buildCombinedShareFiles(sel) {
     if (!p) continue;
     if (p.image) {
       try {
-        const blob = dataURLtoBlob(p.image);
+        const blob = await mediaValueToBlob(p.image);
         const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg','jpg');
         files.push(new File([blob], (p.title||'projet').replace(/\s+/g,'_') + '.' + ext, { type: blob.type }));
       } catch (e) { /* ignore image corrompue */ }
@@ -3849,7 +4019,7 @@ async function buildCombinedShareFiles(sel) {
     const p = store.pitches.find(x => x.id === id);
     if (!p || !p.file) continue;
     try {
-      const blob = dataURLtoBlob(p.file);
+      const blob = await mediaValueToBlob(p.file);
       files.push(new File([blob], p.filename || (p.name + '.pdf'), { type: blob.type || 'application/octet-stream' }));
     } catch (e) { /* ignore */ }
   }

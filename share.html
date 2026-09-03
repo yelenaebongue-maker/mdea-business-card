@@ -36,6 +36,67 @@
   .head-title { font-family:var(--font-heading); font-size:1.5rem; }
   .head-text { font-size:0.82rem; color:var(--light-gray); margin-top:10px; line-height:1.7; white-space:pre-wrap; }
 
+  /* ---- Profil ---- */
+  .profile-block { padding:32px; background:var(--charcoal); border:1px solid rgba(201,169,110,0.15); border-radius:var(--radius-lg); margin-bottom:24px; position:relative; overflow:hidden; }
+  .profile-block::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,#9a7a48,var(--gold),var(--gold-light)); }
+  .profile-hero { display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+  .profile-photo { width:84px; height:84px; border-radius:50%; overflow:hidden; border:2px solid var(--gold); flex-shrink:0; background:var(--dark-gray); display:flex; align-items:center; justify-content:center; font-size:1.8rem; }
+  .profile-photo img { width:100%; height:100%; object-fit:cover; }
+  .profile-name { font-family:var(--font-heading); font-size:1.35rem; }
+  .profile-title { color:var(--gold); font-size:0.78rem; letter-spacing:0.04em; margin-top:4px; }
+  .profile-company { color:var(--light-gray); font-size:0.78rem; margin-top:2px; }
+  .profile-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .profile-chip { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:7px 13px; font-size:0.72rem; color:var(--light-gray); }
+  .profile-chip a { color:inherit; }
+  .profile-actions { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+  .btn-gold, .btn-outline-gold {
+    font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase;
+    padding:11px 18px; border-radius:var(--radius-sm); cursor:pointer; transition:.25s; border:none; white-space:nowrap;
+  }
+  .btn-gold { background:var(--gold); color:#000; }
+  .btn-gold:hover { background:var(--gold-light); }
+  .btn-outline-gold { background:transparent; color:var(--gold); border:1px solid rgba(201,169,110,0.4); }
+  .btn-outline-gold:hover { border-color:var(--gold); }
+
+  .info-block { padding:24px 28px; background:var(--charcoal); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg); margin-bottom:18px; }
+  .info-block-title { font-size:0.65rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--gold); margin-bottom:14px; }
+  .info-bio { font-size:0.85rem; color:var(--light-gray); line-height:1.8; white-space:pre-wrap; }
+  .info-skills { display:flex; flex-wrap:wrap; gap:8px; }
+  .info-skill { background:rgba(201,169,110,0.1); border:1px solid rgba(201,169,110,0.25); color:var(--gold-light); border-radius:20px; padding:6px 13px; font-size:0.72rem; }
+  .timeline-item { padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+  .timeline-item:last-child { border-bottom:none; }
+  .timeline-title { font-weight:500; font-size:0.85rem; }
+  .timeline-org { font-size:0.72rem; color:var(--gold); margin-top:2px; }
+  .timeline-date { font-size:0.65rem; color:var(--mid-gray); margin-top:2px; }
+  .timeline-desc { font-size:0.78rem; color:var(--mid-gray); margin-top:6px; line-height:1.6; }
+  .partners-row { display:flex; flex-wrap:wrap; gap:16px; align-items:center; }
+  .partner-logo { height:36px; max-width:100px; object-fit:contain; filter:grayscale(1) brightness(1.6); opacity:0.85; }
+  .socials-row { display:flex; flex-wrap:wrap; gap:10px; }
+  .social-btn { border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:9px 15px; font-size:0.72rem; color:var(--light-gray); }
+  .social-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+  /* ---- Section titles ---- */
+  .section-title { font-size:0.68rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); margin:32px 0 14px; }
+
+  /* ---- Portfolio ---- */
+  .project-card { background:var(--charcoal); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-md); overflow:hidden; margin-bottom:16px; }
+  .project-image { width:100%; aspect-ratio:16/9; object-fit:cover; display:block; background:var(--dark-gray); }
+  .project-body { padding:18px 20px; }
+  .project-title { font-family:var(--font-heading); font-size:1.05rem; }
+  .project-meta { font-size:0.68rem; color:var(--gold); margin-top:4px; }
+  .project-desc { font-size:0.8rem; color:var(--light-gray); line-height:1.7; margin-top:10px; white-space:pre-wrap; }
+  .project-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+  .project-tag { font-size:0.65rem; background:rgba(255,255,255,0.05); border-radius:12px; padding:4px 10px; color:var(--mid-gray); }
+  .project-link { display:inline-block; margin-top:12px; font-size:0.72rem; color:var(--gold); text-decoration:underline; }
+
+  /* ---- Pitchs ---- */
+  .pitch-row { display:flex; align-items:center; gap:14px; background:var(--charcoal); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-md); padding:16px 18px; margin-bottom:12px; }
+  .pitch-icon { font-size:1.4rem; flex-shrink:0; width:36px; text-align:center; }
+  .pitch-info { flex:1; min-width:0; }
+  .pitch-name { font-size:0.82rem; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pitch-meta { font-size:0.65rem; color:var(--mid-gray); margin-top:2px; }
+
+  /* ---- Fichiers génériques (factures, doc Word...) ---- */
   .file-list { display:flex; flex-direction:column; gap:12px; }
   .file-row { display:flex; align-items:center; gap:14px; background:var(--charcoal); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-md); padding:16px 18px; }
   .file-icon { font-size:1.4rem; flex-shrink:0; width:36px; text-align:center; }
@@ -48,14 +109,6 @@
     white-space:nowrap; transition:.25s;
   }
   .file-action:hover { background:var(--gold-light); }
-
-  .save-all-btn {
-    display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
-    font-size:0.68rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;
-    color:var(--black); background:var(--gold); padding:14px; border-radius:var(--radius-sm);
-    margin-bottom:24px; cursor:pointer; border:none; transition:.25s;
-  }
-  .save-all-btn:hover { background:var(--gold-light); }
 
   .footer-brand { text-align:center; padding:30px 24px 10px; font-size:0.58rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--mid-gray); }
   .footer-brand span { color:var(--gold); }
@@ -87,6 +140,11 @@ function formatSize(bytes) {
   if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' Ko';
   return (bytes/1048576).toFixed(1) + ' Mo';
 }
+function getSocialIcon(platform) {
+  const p = (platform || '').toLowerCase();
+  const map = { linkedin:'in', instagram:'📷', facebook:'f', twitter:'𝕏', x:'𝕏', tiktok:'♪', youtube:'▶', whatsapp:'💬', website:'🔗' };
+  return map[p] || '🔗';
+}
 
 async function saveContact(vcardFile) {
   try {
@@ -102,42 +160,160 @@ async function saveContact(vcardFile) {
   window.location.href = vcardFile.url;
 }
 
-function renderShare(data) {
-  const files = data.files || [];
-  const vcard = files.find(f => f.type?.includes('vcard') || f.name?.toLowerCase().endsWith('.vcf'));
-
-  let html = '<div class="wrap">';
-  html += `<div class="head-block">
-    <div class="head-title">${escHtml(data.title || 'MDEA Business Card')}</div>
-    ${data.text ? `<div class="head-text">${escHtml(data.text)}</div>` : ''}
+function renderProfileBlock(profile, vcardFile) {
+  if (!profile) return '';
+  let html = `<div class="profile-block"><div class="profile-hero">`;
+  html += `<div class="profile-photo">${profile.photoUrl ? `<img src="${profile.photoUrl}" alt="">` : '👤'}</div>`;
+  html += `<div>
+    <div class="profile-name">${escHtml(profile.firstName)} ${escHtml(profile.lastName)}</div>
+    ${profile.title ? `<div class="profile-title">${escHtml(profile.title)}</div>` : ''}
+    ${profile.company ? `<div class="profile-company">${escHtml(profile.company)}${profile.location ? ' · ' + escHtml(profile.location) : ''}</div>` : ''}
   </div>`;
+  html += `</div>`;
 
-  if (vcard) {
-    html += `<button class="save-all-btn" id="btnSaveContact">💾 Enregistrer le contact</button>`;
+  const chips = [];
+  if (profile.email) chips.push(`<div class="profile-chip">✉ <a href="mailto:${escHtml(profile.email)}">${escHtml(profile.email)}</a></div>`);
+  if (profile.phone) chips.push(`<div class="profile-chip">📞 <a href="tel:${escHtml(profile.phone)}">${escHtml(profile.phone)}</a></div>`);
+  if (profile.website) chips.push(`<div class="profile-chip">🔗 <a href="${escHtml(profile.website)}" target="_blank" rel="noopener">Site Web</a></div>`);
+  if (chips.length) html += `<div class="profile-chips">${chips.join('')}</div>`;
+
+  const actions = [];
+  if (vcardFile) actions.push(`<button class="btn-gold" id="btnSaveContact">💾 Enregistrer le contact</button>`);
+  if (profile.phone) actions.push(`<a class="btn-outline-gold" style="display:inline-flex;align-items:center" href="https://wa.me/${(profile.phone||'').replace(/\D/g,'')}" target="_blank" rel="noopener">💬 WhatsApp</a>`);
+  if (actions.length) html += `<div class="profile-actions">${actions.join('')}</div>`;
+
+  html += `</div>`;
+
+  if (profile.bio) {
+    html += `<div class="info-block"><div class="info-block-title">À propos</div><div class="info-bio">${escHtml(profile.bio)}</div></div>`;
   }
-
-  if (files.length) {
-    html += '<div class="file-list">';
-    files.forEach(f => {
-      html += `<div class="file-row">
-        <div class="file-icon">${fileIcon(f.type, f.name)}</div>
-        <div class="file-info">
-          <div class="file-name">${escHtml(f.name)}</div>
-          <div class="file-meta">${formatSize(f.size)}</div>
-        </div>
-        <a class="file-action" href="${f.url}" target="_blank" rel="noopener" download="${escHtml(f.name)}">Ouvrir</a>
+  if (profile.skills && profile.skills.length) {
+    html += `<div class="info-block"><div class="info-block-title">Compétences clés</div>
+      <div class="info-skills">${profile.skills.map(s=>`<span class="info-skill">${escHtml(s)}</span>`).join('')}</div>
+    </div>`;
+  }
+  if (profile.experiences && profile.experiences.length) {
+    html += `<div class="info-block"><div class="info-block-title">Expériences professionnelles</div>`;
+    profile.experiences.forEach(e => {
+      html += `<div class="timeline-item">
+        <div class="timeline-title">${escHtml(e.title)}</div>
+        <div class="timeline-org">${escHtml(e.org)}${e.loc ? ' · ' + escHtml(e.loc) : ''}</div>
+        ${e.date ? `<div class="timeline-date">${escHtml(e.date)}</div>` : ''}
+        ${e.desc ? `<div class="timeline-desc">${escHtml(e.desc)}</div>` : ''}
       </div>`;
     });
-    html += '</div>';
-  } else {
-    html += '<p style="color:var(--mid-gray);font-size:0.8rem">Aucun fichier joint à ce partage.</p>';
+    html += `</div>`;
+  }
+  if (profile.education && profile.education.length) {
+    html += `<div class="info-block"><div class="info-block-title">Formations & diplômes</div>`;
+    profile.education.forEach(e => {
+      html += `<div class="timeline-item">
+        <div class="timeline-title">${escHtml(e.title)}</div>
+        <div class="timeline-org">${escHtml(e.org)}${e.loc ? ' — ' + escHtml(e.loc) : ''}</div>
+        ${e.date ? `<div class="timeline-date">${escHtml(e.date)}</div>` : ''}
+        ${e.desc ? `<div class="timeline-desc">${escHtml(e.desc)}</div>` : ''}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  if (profile.partnerLogoUrls && profile.partnerLogoUrls.length) {
+    html += `<div class="info-block"><div class="info-block-title">Partenaires & collaborateurs</div>
+      <div class="partners-row">${profile.partnerLogoUrls.filter(Boolean).map(l=>`<img class="partner-logo" src="${l}" alt="Partenaire">`).join('')}</div>
+    </div>`;
+  }
+  return html;
+}
+
+function renderSocialsBlock(socials) {
+  if (!socials || !socials.length) return '';
+  return `<div class="info-block"><div class="info-block-title">Réseaux sociaux</div>
+    <div class="socials-row">${socials.map(s=>`<a class="social-btn" href="${escHtml(s.url)}" target="_blank" rel="noopener">${getSocialIcon(s.platform)} ${escHtml(s.handle || s.platform)}</a>`).join('')}</div>
+  </div>`;
+}
+
+function renderProjectsSection(projects) {
+  if (!projects || !projects.length) return '';
+  let html = `<div class="section-title">Portfolio</div>`;
+  projects.forEach(p => {
+    html += `<div class="project-card">`;
+    if (p.imageUrl) html += `<img class="project-image" src="${p.imageUrl}" alt="${escHtml(p.title)}">`;
+    html += `<div class="project-body">
+      <div class="project-title">${escHtml(p.title)}</div>
+      ${(p.category || p.year || p.role) ? `<div class="project-meta">${[p.category, p.year, p.role].filter(Boolean).map(escHtml).join(' · ')}</div>` : ''}
+      ${p.desc ? `<div class="project-desc">${escHtml(p.desc)}</div>` : ''}
+      ${p.tags && p.tags.length ? `<div class="project-tags">${p.tags.map(t=>`<span class="project-tag">${escHtml(t)}</span>`).join('')}</div>` : ''}
+      ${p.url ? `<a class="project-link" href="${escHtml(p.url)}" target="_blank" rel="noopener">Voir le projet →</a>` : ''}
+    </div></div>`;
+  });
+  return html;
+}
+
+function renderPitchesSection(pitches) {
+  if (!pitches || !pitches.length) return '';
+  let html = `<div class="section-title">Pitch decks</div>`;
+  pitches.forEach(p => {
+    html += `<div class="pitch-row">
+      <div class="pitch-icon">${p.type === 'PDF' ? '📕' : '📊'}</div>
+      <div class="pitch-info">
+        <div class="pitch-name">${escHtml(p.name)}</div>
+        <div class="pitch-meta">${[p.type, p.size].filter(Boolean).map(escHtml).join(' · ')}</div>
+      </div>
+      ${p.fileUrl ? `<a class="file-action" href="${p.fileUrl}" target="_blank" rel="noopener" download="${escHtml(p.fileName || p.name)}">Télécharger</a>` : ''}
+    </div>`;
+  });
+  return html;
+}
+
+function renderFilesSection(files) {
+  if (!files || !files.length) return '';
+  let html = `<div class="section-title">Documents</div><div class="file-list">`;
+  files.forEach(f => {
+    html += `<div class="file-row">
+      <div class="file-icon">${fileIcon(f.type, f.name)}</div>
+      <div class="file-info">
+        <div class="file-name">${escHtml(f.name)}</div>
+        <div class="file-meta">${formatSize(f.size)}</div>
+      </div>
+      <a class="file-action" href="${f.url}" target="_blank" rel="noopener" download="${escHtml(f.name)}">Ouvrir</a>
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderShare(data) {
+  const files = data.files || [];
+  const extra = data.extra || {};
+  const vcard = files.find(f => f.type?.includes('vcard') || f.name?.toLowerCase().endsWith('.vcf'));
+  // Les fichiers déjà représentés ailleurs (vCard -> bouton dédié) ne sont
+  // pas listés une deuxième fois dans "Documents".
+  const otherFiles = files.filter(f => f !== vcard);
+
+  let html = '<div class="wrap">';
+
+  // En-tête générique (toujours affiché s'il y a un titre/texte)
+  if (data.title || data.text) {
+    html += `<div class="head-block">
+      <div class="head-title">${escHtml(data.title || 'MDEA Business Card')}</div>
+      ${data.text ? `<div class="head-text">${escHtml(data.text)}</div>` : ''}
+    </div>`;
+  }
+
+  html += renderProfileBlock(extra.profile, vcard);
+  html += renderSocialsBlock(extra.socials);
+  html += renderProjectsSection(extra.projects);
+  html += renderPitchesSection(extra.pitches);
+  html += renderFilesSection(otherFiles);
+
+  if (!extra.profile && !(extra.projects||[]).length && !(extra.pitches||[]).length && !files.length) {
+    html += '<p style="color:var(--mid-gray);font-size:0.8rem">Aucun contenu attaché à ce partage.</p>';
   }
 
   html += '</div>';
   document.getElementById('root').innerHTML = html;
 
   if (vcard) {
-    document.getElementById('btnSaveContact').addEventListener('click', () => saveContact(vcard));
+    document.getElementById('btnSaveContact')?.addEventListener('click', () => saveContact(vcard));
   }
   document.title = `${data.title || 'MDEA Business Card'} — Partage`;
 }
