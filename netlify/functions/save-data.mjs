@@ -22,7 +22,7 @@ export const handler = async (event, context) => {
 
   const uid = user.sub;
   try {
-    const store = getStore('mdea-data');
+    const store = getStore('mdea-data', { consistency: 'strong' });
     await store.setJSON(`owners/${uid}/data.json`, payload.full || {});
     await store.setJSON(`public-cards/${uid}/card.json`, payload.public || {});
     return {

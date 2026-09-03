@@ -2342,6 +2342,15 @@ async function loadStoreFromCloud() {
   try {
     const res = await NetlifyAuth.authedFetch('/.netlify/functions/load-data');
     if (res.status === 404) return; // rien à charger la première fois — normal
+    if (res.status === 401) {
+      // Le token n'était pas encore prêt au moment de l'appel — on NE
+      // VIDE PAS le store local pour autant (sinon un autosave déclenché
+      // juste après écraserait les données existantes côté serveur avec
+      // un store vide). On réessaiera silencieusement une fois.
+      console.warn('load-data a répondu 401 (token pas encore prêt), nouvelle tentative…');
+      await new Promise(r => setTimeout(r, 800));
+      return loadStoreFromCloud();
+    }
     if (!res.ok) throw new Error('http ' + res.status);
     const data = await res.json();
     store.profiles = data.profiles || [];
@@ -4483,8 +4492,16 @@ function shareWordDoc() {
 // INIT
 // ============================================================
 document.getElementById('invDate').value = new Date().toISOString().split('T')[0];
-authReady.then(() => {
-  loadStoreFromCloud();
+authReady.then(async () => {
+  // IMPORTANT : on attend que le chargement cloud soit VRAIMENT terminé
+  // avant d'activer la surveillance (MutationObserver) qui déclenche les
+  // sauvegardes automatiques. Sinon, les mutations DOM provoquées par le
+  // chargement lui-même (rendu du portfolio/réseaux/pitchs/factures)
+  // pouvaient planifier une sauvegarde AVANT que toutes les catégories
+  // soient réellement chargées, ce qui écrasait les données existantes
+  // côté serveur avec un store partiellement vide. C'était très
+  // probablement la cause du bug "seul le profil reste après rafraîchissement".
+  await loadStoreFromCloud();
   initAutosave();
   initAccountBar();
 });

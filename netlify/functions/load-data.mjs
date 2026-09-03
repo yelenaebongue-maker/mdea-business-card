@@ -11,7 +11,7 @@ export const handler = async (event, context) => {
 
   const uid = user.sub;
   try {
-    const store = getStore('mdea-data');
+    const store = getStore('mdea-data', { consistency: 'strong' });
     const data = await store.get(`owners/${uid}/data.json`, { type: 'json' });
     if (!data) return { statusCode: 404, body: JSON.stringify({ error: 'Aucune donnée' }) };
     return {
