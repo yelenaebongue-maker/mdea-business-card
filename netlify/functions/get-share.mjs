@@ -2,6 +2,10 @@ import { connectLambda, getStore } from '@netlify/blobs';
 
 // Public (pas d'authentification) : c'est ce que lit share.html quand
 // quelqu'un tape la carte NFC ou ouvre le lien.
+//
+// Les fichiers ne sont plus stockés en base64 dans ce document : chaque
+// fichier porte déjà sa propre URL (/api/shared-file?id=...&name=...)
+// posée au moment de l'upload. On renvoie donc le document quasi tel quel.
 export const handler = async (event) => {
   connectLambda(event);
   const id = event.queryStringParameters && event.queryStringParameters.id;
@@ -11,6 +15,7 @@ export const handler = async (event) => {
     const store = getStore('mdea-shares', { consistency: 'strong' });
     const data = await store.get(id, { type: 'json' });
     if (!data) return { statusCode: 404, body: JSON.stringify({ error: 'introuvable' }) };
+
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },

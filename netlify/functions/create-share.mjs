@@ -2,6 +2,13 @@ import { connectLambda, getStore } from '@netlify/blobs';
 
 // Crée OU met à jour (si le même id est réutilisé, ex: carte NFC stable)
 // un enregistrement de partage : { title, text, files:[{name,type,size,url}] }
+//
+// IMPORTANT : les fichiers ne sont plus envoyés en base64 dans ce payload.
+// Ils sont uploadés SÉPARÉMENT vers /api/upload-file (edge function
+// upload-share-file.mjs) AVANT cet appel. On ne reçoit ici que les
+// métadonnées + l'URL de récupération (/api/shared-file?...), ce qui
+// garde ce document minuscule et évite la limite de ~6 Mo des fonctions
+// classiques (Lambda) sur le corps de la requête/réponse.
 export const handler = async (event, context) => {
   connectLambda(event);
   const user = context.clientContext && context.clientContext.user;
@@ -22,17 +29,17 @@ export const handler = async (event, context) => {
   const { id, title, text, files, extra } = payload;
   if (!id) return { statusCode: 400, body: JSON.stringify({ error: 'id manquant' }) };
 
-  const filesWithUrls = (files || []).map(f => ({
+  const filesMeta = (files || []).map(f => ({
     name: f.name,
     type: f.type,
     size: f.size,
-    url: `/.netlify/functions/get-share-file?share=${encodeURIComponent(id)}&name=${encodeURIComponent(f.name)}`
+    url: f.url || ''
   }));
 
   const record = {
     title: title || 'MDEA Business Card',
     text: text || '',
-    files: filesWithUrls,
+    files: filesMeta,
     extra: extra || {},
     ownerId: user.sub,
     updatedAt: Date.now()

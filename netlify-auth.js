@@ -151,12 +151,41 @@
 
   // Wrapper fetch qui ajoute automatiquement le token Identity.
   // Les fonctions Netlify le lisent tout seul dans context.clientContext.user.
+  //
+  // IMPORTANT : quand le body est un FormData (upload de fichier réel vers
+  // upload-share-file.mjs), il ne faut SURTOUT PAS forcer
+  // 'Content-Type: application/json' — cela écrase le boundary multipart
+  // que fetch() pose automatiquement, et le serveur ne peut plus parser le
+  // fichier (req.formData() échoue). On ne force le JSON que si ce n'est
+  // pas un FormData.
   async function authedFetch(url, options = {}) {
     const token = await getToken();
-    const headers = Object.assign({}, options.headers, { 'Content-Type': 'application/json' });
+    const isFormData = (typeof FormData !== 'undefined') && options.body instanceof FormData;
+    const headers = Object.assign({}, options.headers);
+    if (!isFormData && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
     if (token) headers.Authorization = 'Bearer ' + token;
     return fetch(url, Object.assign({}, options, { headers }));
   }
 
-  window.NetlifyAuth = { login, logout, getUser, getToken, recoverPassword, authedFetch, setPasswordFromToken, readAuthTokenFromUrl };
+  // Change le mot de passe d'un utilisateur déjà connecté.
+  // On revalide d'abord l'identité avec le mot de passe ACTUEL (via login())
+  // avant d'appeler PUT /user — cela évite qu'une session volée/oubliée
+  // ouverte sur un appareil public permette de changer le mot de passe sans
+  // le connaître.
+  async function changePassword(email, currentPassword, newPassword) {
+    await login(email, currentPassword); // lève une erreur si le mot de passe actuel est faux
+    const token = await getToken();
+    const res = await fetch('/.netlify/identity/user', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ password: newPassword })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error_description || "Impossible d'enregistrer le nouveau mot de passe.");
+    }
+    return res.json();
+  }
+
+  window.NetlifyAuth = { login, logout, getUser, getToken, recoverPassword, authedFetch, setPasswordFromToken, readAuthTokenFromUrl, changePassword };
 })(window);

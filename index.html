@@ -1651,6 +1651,39 @@ main {
 </div>
 
 
+<!-- ====================================================== MODAL: CHANGER MOT DE PASSE -->
+<div class="modal-backdrop" id="changePasswordModal">
+  <div class="modal">
+    <div class="modal-accent"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title-eyebrow">Sécurité du compte</div>
+        <div class="modal-title">Changer mon mot de passe</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('changePasswordModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="msg" id="changePasswordMsg" style="font-size:0.75rem;margin-bottom:16px;padding:10px 12px;border-radius:6px;display:none"></div>
+      <div class="form-group">
+        <label class="form-label">Mot de passe actuel</label>
+        <input type="password" class="form-input" id="cpCurrentPassword" autocomplete="current-password">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nouveau mot de passe</label>
+        <input type="password" class="form-input" id="cpNewPassword" autocomplete="new-password" minlength="8" placeholder="8 caractères minimum">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmer le nouveau mot de passe</label>
+        <input type="password" class="form-input" id="cpNewPasswordConfirm" autocomplete="new-password" minlength="8">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('changePasswordModal')">Annuler</button>
+      <button class="btn-primary" id="cpSubmitBtn" onclick="submitChangePassword()">🔒 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- ====================================================== MODAL: PROJECT -->
 <div class="modal-backdrop" id="projectModal">
   <div class="modal">
@@ -2191,6 +2224,59 @@ function getOwnerId() {
   return currentUser.id;
 }
 
+// Transforme une data: URL (photo, image de projet, logo, pitch...) en
+// fichier réellement hébergé sur Netlify Blobs, et retourne l'URL de
+// lecture publique (/api/shared-file). Réutilise le même mécanisme que le
+// partage (upload-share-file.mjs / get-shared-file.mjs), mais range les
+// fichiers sous un compartiment propre à l'utilisateur ("profile-{uid}")
+// plutôt que sous un id de partage ponctuel — ces fichiers restent tant
+// que le profil existe. Si ce n'est pas une data: URL (déjà externalisée,
+// ou vide), on ne touche à rien.
+async function externalizeDataUrl(dataUrl, bucket, hintName) {
+  if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
+    return dataUrl;
+  }
+  const blob = dataURLtoBlob(dataUrl);
+  const ext = (blob.type.split('/')[1] || 'bin').replace('jpeg', 'jpg');
+  const name = `${hintName || generateId()}.${ext}`;
+  const fd = new FormData();
+  fd.append('file', blob, name);
+  const res = await NetlifyAuth.authedFetch(`/api/upload-file?share=${encodeURIComponent(bucket)}`, {
+    method: 'POST',
+    body: fd
+  });
+  if (!res.ok) throw new Error(`Échec de l'upload de "${name}" (http ${res.status})`);
+  const result = await res.json();
+  return `/api/shared-file?id=${encodeURIComponent(bucket)}&name=${encodeURIComponent(result.name)}`;
+}
+
+// Parcourt le store et remplace toutes les images/fichiers encore en
+// data: URL par de vraies URLs hébergées, AVANT l'envoi à save-data.
+// Indispensable : sans ça, le JSON envoyé à save-data.mjs peut dépasser la
+// limite ~6 Mo des fonctions classiques Netlify dès que le profil contient
+// quelques photos/logos/pitchs — exactement le même problème qui cassait
+// le partage. Après cet appel, le store ne contient plus que du texte et
+// des URLs légères, donc les sauvegardes automatiques restent fiables.
+async function externalizeStoreMedia() {
+  const uid = getOwnerId();
+  const bucket = `profile-${uid}`;
+
+  for (const p of store.profiles) {
+    if (p.photo) p.photo = await externalizeDataUrl(p.photo, bucket, `profile_${p.id}`);
+  }
+  for (const p of store.projects) {
+    if (p.image) p.image = await externalizeDataUrl(p.image, bucket, `project_${p.id}`);
+    if (Array.isArray(p.partnerLogos)) {
+      for (let i = 0; i < p.partnerLogos.length; i++) {
+        p.partnerLogos[i] = await externalizeDataUrl(p.partnerLogos[i], bucket, `project_${p.id}_logo${i}`);
+      }
+    }
+  }
+  for (const p of store.pitches) {
+    if (p.file) p.file = await externalizeDataUrl(p.file, bucket, `pitch_${p.id}`);
+  }
+}
+
 let cloudSaveTimer = null;
 function scheduleCloudSave() {
   clearTimeout(cloudSaveTimer);
@@ -2200,6 +2286,15 @@ function scheduleCloudSave() {
 async function saveStoreToCloud() {
   if (!currentUser) return; // pas encore authentifié, rien à faire
   try {
+    // Remplace toute image/fichier encore embarqué en base64 par une vraie
+    // URL hébergée — voir le commentaire d'externalizeStoreMedia() ci-dessus.
+    await externalizeStoreMedia();
+    // Reflète tout de suite les nouvelles URLs à l'écran (évite de garder
+    // d'énormes data: URL en mémoire/dans le DOM une fois uploadées).
+    renderProfiles();
+    renderProjects();
+    renderPitches();
+
     const fullSnapshot = {
       profiles: store.profiles,
       projects: store.projects,
@@ -2264,8 +2359,54 @@ async function initAccountBar() {
   const url = currentUsername ? `${window.location.origin}/${currentUsername}` : null;
   bar.innerHTML = `
     ${url ? `<a href="${url}" target="_blank" style="color:var(--gold);font-size:0.7rem;text-decoration:none">🔗 ${url}</a>` : ''}
+    <span onclick="openChangePasswordModal()" style="cursor:pointer;font-size:0.65rem;color:var(--mid-gray);margin-left:14px;text-decoration:underline">Mot de passe</span>
     <span onclick="NetlifyAuth.logout().then(()=>window.location.href='/login')" style="cursor:pointer;font-size:0.65rem;color:var(--mid-gray);margin-left:14px;text-decoration:underline">Déconnexion</span>
   `;
+}
+
+// ============================================================
+// CHANGER LE MOT DE PASSE (depuis l'application, une fois connecté)
+// ============================================================
+function openChangePasswordModal() {
+  document.getElementById('cpCurrentPassword').value = '';
+  document.getElementById('cpNewPassword').value = '';
+  document.getElementById('cpNewPasswordConfirm').value = '';
+  const msg = document.getElementById('changePasswordMsg');
+  msg.style.display = 'none';
+  openModal('changePasswordModal');
+}
+
+function showChangePasswordMsg(text, type) {
+  const el = document.getElementById('changePasswordMsg');
+  el.textContent = text;
+  el.style.display = 'block';
+  el.style.background = type === 'error' ? 'rgba(224,80,80,0.12)' : 'rgba(46,153,112,0.12)';
+  el.style.color = type === 'error' ? '#ff9494' : '#6fd6ac';
+  el.style.border = '1px solid ' + (type === 'error' ? 'rgba(224,80,80,0.3)' : 'rgba(46,153,112,0.3)');
+}
+
+async function submitChangePassword() {
+  const current = document.getElementById('cpCurrentPassword').value;
+  const pw1 = document.getElementById('cpNewPassword').value;
+  const pw2 = document.getElementById('cpNewPasswordConfirm').value;
+
+  if (!current) { showChangePasswordMsg('Entrez votre mot de passe actuel.', 'error'); return; }
+  if (pw1.length < 8) { showChangePasswordMsg('Le nouveau mot de passe doit faire au moins 8 caractères.', 'error'); return; }
+  if (pw1 !== pw2) { showChangePasswordMsg('Les deux mots de passe ne correspondent pas.', 'error'); return; }
+  if (!currentUser || !currentUser.email) { showChangePasswordMsg('Session utilisateur introuvable — reconnectez-vous.', 'error'); return; }
+
+  const btn = document.getElementById('cpSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Enregistrement…';
+  try {
+    await NetlifyAuth.changePassword(currentUser.email, current, pw1);
+    showChangePasswordMsg('✓ Mot de passe mis à jour.', 'success');
+    toast('✓ Mot de passe changé');
+    setTimeout(() => closeModal('changePasswordModal'), 1200);
+  } catch (e) {
+    showChangePasswordMsg(e.message || 'Mot de passe actuel incorrect.', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '🔒 Enregistrer';
+  }
 }
 
 // Sauvegarde automatique : dès qu'une des listes affichées à l'écran
@@ -3793,19 +3934,31 @@ function copyShareLink() {
 // n'importe quel téléphone qui tape la carte ouvre share.html, qui
 // va chercher le contenu réel côté serveur.
 // ============================================================
-// Convertit un fichier en base64 directement dans le navigateur (pas d'upload
-// séparé) — le contenu part avec le reste du partage en un seul appel fiable.
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1] || '');
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+// Upload RÉEL du fichier vers Netlify Blobs via l'edge function
+// upload-share-file.mjs (route /api/upload-file). Pas de limite pratique
+// de taille (contrairement à l'ancienne approche base64-dans-le-JSON qui
+// se heurtait à la limite ~6 Mo des fonctions classiques). On récupère en
+// retour le nom réel stocké et on construit l'URL de lecture publique
+// (/api/shared-file), servie par get-shared-file.mjs.
 async function uploadFileToShare(shareId, file) {
-  const dataBase64 = await fileToBase64(file);
-  return { name: file.name || 'fichier', type: file.type || 'application/octet-stream', size: file.size, dataBase64 };
+  const fd = new FormData();
+  fd.append('file', file, file.name);
+  const res = await NetlifyAuth.authedFetch(`/api/upload-file?share=${encodeURIComponent(shareId)}`, {
+    method: 'POST',
+    body: fd
+  });
+  if (!res.ok) {
+    let detail = '';
+    try { detail = await res.text(); } catch (e) {}
+    throw new Error(`Échec de l'upload de "${file.name}" (http ${res.status})${detail ? ' — ' + detail : ''}`);
+  }
+  const result = await res.json();
+  return {
+    name: result.name,
+    type: result.type || file.type || 'application/octet-stream',
+    size: result.size || file.size,
+    url: `/api/shared-file?id=${encodeURIComponent(shareId)}&name=${encodeURIComponent(result.name)}`
+  };
 }
 
 // Identifiant STABLE de la carte de l'utilisateur connecté : ne change
@@ -3831,7 +3984,7 @@ async function createCloudShare({ files = [], text = '', title = 'MDEA Business 
   const uploaded = [];
   for (const f of files) {
     const result = await uploadFileToShare(shareId, f);
-    uploaded.push({ name: result.name, type: result.type, size: result.size, dataBase64: result.dataBase64 });
+    uploaded.push(result); // { name, type, size, url }
   }
   const res = await NetlifyAuth.authedFetch('/.netlify/functions/create-share', {
     method: 'POST',
