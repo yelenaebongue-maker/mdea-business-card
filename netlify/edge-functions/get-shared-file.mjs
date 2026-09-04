@@ -20,11 +20,23 @@ export default async (req) => {
 
   const contentType = (entry.metadata && entry.metadata.contentType) || 'application/octet-stream';
 
+  // Le forçage du téléchargement ("attachment") n'est appliqué QUE quand
+  // l'appelant le demande explicitement via ?dl=1 — c'est share.html qui
+  // ajoute ce paramètre sur les liens "Télécharger" (factures, pitchs).
+  // Sans ce paramètre, le fichier reste "inline" comme avant : les
+  // <img src="/api/shared-file?...">  utilisées ailleurs dans
+  // l'application (photo de profil, images de portfolio, logos
+  // partenaires) continuent de s'afficher normalement, et ne se
+  // retrouvent jamais forcées en téléchargement par erreur.
+  const forceDownload = url.searchParams.get('dl') === '1';
+  const disposition = forceDownload ? 'attachment' : 'inline';
+  const safeName = name.replace(/"/g, "'");
+
   return new Response(entry.data, {
     status: 200,
     headers: {
       'Content-Type': contentType,
-      'Content-Disposition': `inline; filename="${name}"`,
+      'Content-Disposition': `${disposition}; filename="${safeName}"`,
       'Cache-Control': 'public, max-age=31536000, immutable'
     }
   });

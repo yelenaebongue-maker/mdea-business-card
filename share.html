@@ -145,6 +145,15 @@ function getSocialIcon(platform) {
   const map = { linkedin:'in', instagram:'📷', facebook:'f', twitter:'𝕏', x:'𝕏', tiktok:'♪', youtube:'▶', whatsapp:'💬', website:'🔗' };
   return map[p] || '🔗';
 }
+// Ajoute ?dl=1 (ou &dl=1) aux liens /api/shared-file pour dire au serveur
+// de forcer un vrai téléchargement (Content-Disposition: attachment) —
+// nécessaire car Safari iOS ignore l'attribut HTML `download`. On ne
+// touche qu'aux liens qui pointent vers cette fonction ; les autres URLs
+// (rares) restent inchangées.
+function withDownload(url) {
+  if (!url || !url.includes('/api/shared-file')) return url;
+  return url + (url.includes('?') ? '&dl=1' : '?dl=1');
+}
 
 async function saveContact(vcardFile) {
   try {
@@ -258,7 +267,7 @@ function renderPitchesSection(pitches) {
         <div class="pitch-name">${escHtml(p.name)}</div>
         <div class="pitch-meta">${[p.type, p.size].filter(Boolean).map(escHtml).join(' · ')}</div>
       </div>
-      ${p.fileUrl ? `<a class="file-action" href="${p.fileUrl}" target="_blank" rel="noopener" download="${escHtml(p.fileName || p.name)}">Télécharger</a>` : ''}
+      ${p.fileUrl ? `<a class="file-action" href="${withDownload(p.fileUrl)}" target="_blank" rel="noopener" download="${escHtml(p.fileName || p.name)}">Télécharger</a>` : ''}
     </div>`;
   });
   return html;
@@ -274,7 +283,7 @@ function renderFilesSection(files) {
         <div class="file-name">${escHtml(f.name)}</div>
         <div class="file-meta">${formatSize(f.size)}</div>
       </div>
-      <a class="file-action" href="${f.url}" target="_blank" rel="noopener" download="${escHtml(f.name)}">Ouvrir</a>
+      <a class="file-action" href="${withDownload(f.url)}" target="_blank" rel="noopener" download="${escHtml(f.name)}">Ouvrir</a>
     </div>`;
   });
   html += '</div>';
