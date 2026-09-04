@@ -2324,8 +2324,17 @@ function sanitizeForSave(list, fields) {
   return { clean, dropped };
 }
 
+let cloudSaveInProgress = false;
+window.addEventListener('beforeunload', (e) => {
+  if (cloudSaveInProgress) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
 async function saveStoreToCloud() {
   if (!currentUser) return; // pas encore authentifié, rien à faire
+  cloudSaveInProgress = true;
   try {
     // Remplace toute image/fichier encore embarqué en base64 par une vraie
     // URL hébergée — voir le commentaire d'externalizeStoreMedia() ci-dessus.
@@ -2362,10 +2371,22 @@ async function saveStoreToCloud() {
       savedAt: Date.now()
     };
 
-    await NetlifyAuth.authedFetch('/.netlify/functions/save-data', {
+    const saveRes = await NetlifyAuth.authedFetch('/.netlify/functions/save-data', {
       method: 'POST',
       body: JSON.stringify({ full: fullSnapshot, public: publicSnapshot })
     });
+    if (!saveRes.ok) {
+      // IMPORTANT : fetch() ne rejette JAMAIS sur un code d'erreur HTTP
+      // (401, 413, 500...), seulement sur une vraie panne réseau. Sans ce
+      // contrôle explicite, un save-data qui échoue côté serveur (ex:
+      // payload encore trop gros, token expiré) passait totalement
+      // inaperçu : le statut affichait quand même "☁ Sauvegardé" alors que
+      // RIEN n'avait été enregistré — c'est très probablement ce qui
+      // causait la disparition silencieuse des pitchs volumineux.
+      let detail = '';
+      try { detail = await saveRes.text(); } catch (e) {}
+      throw new Error(`save-data a répondu ${saveRes.status}${detail ? ' — ' + detail.slice(0,200) : ''}`);
+    }
 
     if (allDropped.length) {
       // Le texte/les métadonnées ont bien été sauvegardés, mais pas encore
@@ -2381,6 +2402,9 @@ async function saveStoreToCloud() {
   } catch (e) {
     console.error('Erreur de sauvegarde cloud :', e);
     document.getElementById('cloudSyncStatus')?.replaceChildren(document.createTextNode('⚠ Sauvegarde échouée'));
+    toast('⚠ Sauvegarde échouée : ' + e.message, '⚠');
+  } finally {
+    cloudSaveInProgress = false;
   }
 }
 
