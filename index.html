@@ -3802,13 +3802,18 @@ function switchShareMode(mode, btn) {
 }
 
 function selectProfile(el) {
-  // Radio behavior for profiles
+  const alreadySelected = el.classList.contains('selected');
+  // Comportement "radio", mais avec possibilité de tout désélectionner :
+  // cliquer sur le profil déjà sélectionné le retire complètement (aucun
+  // profil partagé), cliquer sur un autre bascule la sélection dessus.
   document.querySelectorAll('#shareProfileList .share-check-item').forEach(item => {
     item.classList.remove('selected');
     item.querySelector('.share-checkbox').textContent = '';
   });
-  el.classList.add('selected');
-  el.querySelector('.share-checkbox').textContent = '✓';
+  if (!alreadySelected) {
+    el.classList.add('selected');
+    el.querySelector('.share-checkbox').textContent = '✓';
+  }
 }
 
 function toggleShareItem(el) {

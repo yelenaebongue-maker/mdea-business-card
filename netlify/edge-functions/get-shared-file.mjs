@@ -37,7 +37,17 @@ export default async (req) => {
     headers: {
       'Content-Type': contentType,
       'Content-Disposition': `${disposition}; filename="${safeName}"`,
-      'Cache-Control': 'public, max-age=31536000, immutable'
+      // IMPORTANT : PAS de cache long/"immutable" ici. Le contenu à cette
+      // URL n'est PAS réellement figé : une photo de profil, une facture
+      // ou un pitch peuvent être remplacés sous le même id+nom. Un cache
+      // "immutable" d'un an ferait servir indéfiniment une ancienne
+      // réponse mise en cache par le CDN — notamment une vieille version
+      // en "inline" d'avant ce correctif, empêchant le téléchargement de
+      // fonctionner même après un nouveau déploiement. "no-cache" oblige
+      // le navigateur/CDN à revalider à chaque fois (rapide, ce n'est
+      // qu'une vérification, pas un nouveau téléchargement complet si le
+      // contenu n'a pas changé).
+      'Cache-Control': 'no-cache, must-revalidate'
     }
   });
 };
