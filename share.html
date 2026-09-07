@@ -316,7 +316,7 @@ function renderFilesSection(files) {
         <div class="file-name">${escHtml(f.name)}</div>
         <div class="file-meta">${formatSize(f.size)}</div>
       </div>
-      <a class="file-action" href="${withDownload(f.url)}" target="_blank" rel="noopener" download="${escHtml(f.name)}" onclick="forceDownload(event, '${f.url.replace(/'/g,"\\'")}', '${f.name.replace(/'/g,"\\'")}')">Ouvrir</a>
+      <a class="file-action js-force-download" href="${withDownload(f.url)}" target="_blank" rel="noopener" download="${escHtml(f.name)}" data-url="${escHtml(f.url)}" data-filename="${escHtml(f.name)}">Ouvrir</a>
     </div>`;
   });
   html += '</div>';

@@ -1,0 +1,14 @@
+/share.html
+  Cache-Control: no-cache, must-revalidate
+
+/index.html
+  Cache-Control: no-cache, must-revalidate
+
+/.netlify/functions/get-share
+  Cache-Control: no-store
+
+/.netlify/functions/load-data
+  Cache-Control: no-store
+
+/api/shared-file*
+  Cache-Control: no-cache, must-revalidate

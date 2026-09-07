@@ -1,8 +1,11 @@
 [build]
+  publish = "."
   functions = "netlify/functions"
 
-[[redirects]]
-  from = "/api/upload-file"
-  to = "/.netlify/functions/upload-file"
-  status = 200
-  force = true
+[[edge_functions]]
+  function = "upload-share-file"
+  path = "/api/upload-file"
+
+[[edge_functions]]
+  function = "get-shared-file"
+  path = "/api/shared-file"
