@@ -154,6 +154,39 @@ function withDownload(url) {
   if (!url || !url.includes('/api/shared-file')) return url;
   return url + (url.includes('?') ? '&dl=1' : '?dl=1');
 }
+// Force un VRAI téléchargement au clic : on récupère le fichier en Blob
+// puis on déclenche un lien local temporaire — cette méthode fonctionne de
+// façon fiable même sur Safari iOS, contrairement à une simple navigation
+// vers l'URL (qui peut ouvrir un aperçu au lieu de télécharger). Le href
+// original reste en place comme repli si le fetch échoue. Délégation sur
+// le document (pas d'onclick inline) pour éviter tout souci d'échappement
+// avec des noms de fichiers contenant des caractères spéciaux.
+document.addEventListener('click', async (event) => {
+  const link = event.target.closest('.js-force-download');
+  if (!link) return;
+  event.preventDefault();
+  const url = link.dataset.url;
+  const filename = link.dataset.filename || 'fichier';
+  const originalText = link.textContent;
+  link.textContent = '…';
+  try {
+    const res = await fetch(withDownload(url));
+    if (!res.ok) throw new Error('http ' + res.status);
+    const blob = await res.blob();
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
+  } catch (e) {
+    window.location.href = withDownload(url);
+  } finally {
+    link.textContent = originalText;
+  }
+});
 
 async function saveContact(vcardFile) {
   try {
@@ -267,7 +300,7 @@ function renderPitchesSection(pitches) {
         <div class="pitch-name">${escHtml(p.name)}</div>
         <div class="pitch-meta">${[p.type, p.size].filter(Boolean).map(escHtml).join(' · ')}</div>
       </div>
-      ${p.fileUrl ? `<a class="file-action" href="${withDownload(p.fileUrl)}" target="_blank" rel="noopener" download="${escHtml(p.fileName || p.name)}">Télécharger</a>` : ''}
+      ${p.fileUrl ? `<a class="file-action js-force-download" href="${withDownload(p.fileUrl)}" target="_blank" rel="noopener" download="${escHtml(p.fileName || p.name)}" data-url="${escHtml(p.fileUrl)}" data-filename="${escHtml(p.fileName || p.name)}">Télécharger</a>` : ''}
     </div>`;
   });
   return html;
@@ -283,7 +316,7 @@ function renderFilesSection(files) {
         <div class="file-name">${escHtml(f.name)}</div>
         <div class="file-meta">${formatSize(f.size)}</div>
       </div>
-      <a class="file-action" href="${withDownload(f.url)}" target="_blank" rel="noopener" download="${escHtml(f.name)}">Ouvrir</a>
+      <a class="file-action" href="${withDownload(f.url)}" target="_blank" rel="noopener" download="${escHtml(f.name)}" onclick="forceDownload(event, '${f.url.replace(/'/g,"\\'")}', '${f.name.replace(/'/g,"\\'")}')">Ouvrir</a>
     </div>`;
   });
   html += '</div>';

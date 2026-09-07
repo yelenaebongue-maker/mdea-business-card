@@ -2117,8 +2117,8 @@ main {
             </div>
           </div>
           <div class="share-link-box">
-            <input class="share-link-input" id="shareLinkInput" value='Cliquez sur "Programmer la carte NFC" pour générer le lien réel' readonly>
-            <button class="btn-primary" onclick="copyShareLink()">Copier</button>
+            <input class="share-link-input" id="shareLinkInput" value='Cliquez sur "Copier" pour générer un lien de partage' readonly>
+            <button class="btn-primary" onclick="copyShareLink(event)">Copier</button>
           </div>
         </div>
 
@@ -3715,7 +3715,7 @@ function openShareModal() {
   }
 
   generateQR(null);
-  document.getElementById('shareLinkInput').value = 'Cliquez sur "Programmer la carte NFC" pour générer le lien réel';
+  document.getElementById('shareLinkInput').value = 'Cliquez sur "Copier" pour générer un lien de partage';
   openModal('shareModal');
 }
 
@@ -4068,12 +4068,15 @@ async function shareViaLink() {
       toast(`📥 ${files.length} fichier(s) téléchargé(s) — le partage groupé de fichiers n'est pas supporté sur cet appareil`);
       return;
     }
-    // Aucun fichier généré (ex: uniquement réseaux sociaux) -> partage du texte / lien
-    const url = document.getElementById('shareLinkInput').value;
+    // Aucun fichier généré (ex: uniquement réseaux sociaux) -> on crée un
+    // lien de partage INDÉPENDANT propre à cette personne (voir
+    // createFreshCloudShare) plutôt que de réutiliser le lien de la carte
+    // NFC, qui changerait si la sélection est modifiée plus tard.
+    const url = await createFreshCloudShare(sel);
     if (navigator.share) {
       navigator.share({ title: 'MDEA Business Card', text: text || undefined, url }).then(() => toast('Partagé !')).catch(()=>{});
     } else {
-      navigator.clipboard?.writeText(text || url).then(() => toast('Copié !')).catch(()=>{});
+      navigator.clipboard?.writeText(text ? `${text}\n${url}` : url).then(() => toast('Copié !')).catch(()=>{});
     }
   } catch (e) {
     toast('Erreur lors du partage : ' + e.message, '⚠');
@@ -4187,9 +4190,40 @@ async function shareSelectedPDFviaLink() {
   }
 }
 
-function copyShareLink() {
-  const input = document.getElementById('shareLinkInput');
-  navigator.clipboard?.writeText(input.value).then(() => toast('Lien copié !')).catch(() => toast('Lien copié !'));
+// Crée un partage cloud INDÉPENDANT, avec son propre identifiant à chaque
+// appel — jamais réutilisé. C'est ce qui garantit que "Copier le lien" et
+// "Envoyer ma sélection" produisent un lien figé, propre à la personne à
+// qui on l'envoie : changer la sélection plus tard pour quelqu'un d'autre
+// ne modifiera jamais ce lien déjà distribué. Seule "Programmer la carte
+// NFC" continue d'utiliser l'identifiant STABLE (getStableCardId()), car
+// il est physiquement gravé sur le tag et ne doit jamais changer.
+async function createFreshCloudShare(sel) {
+  const shareId = generateId(); // toujours nouveau, jamais réutilisé
+  const extra = await buildCloudShareExtra(sel, shareId);
+  const { files, text } = await buildCloudShareFlatFiles(sel);
+  return createCloudShare({ files, text, title: 'MDEA Business Card', extra, fixedId: shareId });
+}
+
+async function copyShareLink(event) {
+  const sel = getShareSelection();
+  const total = sel.profiles.length + sel.projects.length + sel.socials.length + sel.pitches.length + sel.invoices.length + (sel.wordDoc?1:0);
+  if (total === 0) { toast('Sélectionnez au moins un élément à partager','⚠'); return; }
+
+  const btn = event?.currentTarget;
+  const originalText = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  toast('⏳ Génération du lien…');
+  try {
+    const url = await createFreshCloudShare(sel);
+    document.getElementById('shareLinkInput').value = url;
+    await generateQR(url);
+    await navigator.clipboard?.writeText(url);
+    toast('✓ Lien copié — propre à ce partage, ne changera plus même si vous modifiez votre sélection ensuite');
+  } catch (e) {
+    toast('Erreur lors de la génération du lien : ' + e.message, '⚠');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = originalText; }
+  }
 }
 // ============================================================
 // NETLIFY BLOBS — PARTAGE CLOUD RÉEL
