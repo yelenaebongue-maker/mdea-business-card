@@ -363,16 +363,29 @@ function renderShare(data) {
 async function loadShare() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get('id');
+
+  // La puce NFC / le QR "carte" pointent vers la passerelle /api/card,
+  // qui redirige ici avec ?empty=1 quand le propriétaire n'a encore
+  // jamais programmé sa carte (aucun shareId n'a encore été créé pour
+  // elle).
+  if (params.get('empty') === '1') {
+    renderState('<p>Cette carte n\'a pas encore été programmée.</p>');
+    return;
+  }
   if (!id) { renderState('<p>Lien de partage invalide.</p>'); return; }
 
-  // IMPORTANT : le lien de la carte NFC est écrit UNE SEULE FOIS et son
-  // contenu se met à jour automatiquement selon la sélection courante côté
-  // propriétaire. Pour qu'une personne continue de voir EXACTEMENT ce qui
-  // lui a été partagé (même si le propriétaire reprogramme ensuite pour
-  // quelqu'un d'autre sur ce même lien), on mémorise sur SON téléphone,
-  // dès la première ouverture, un instantané figé de ce qu'elle a reçu. Les
-  // ouvertures suivantes de ce même lien, sur ce même appareil, réaffichent
-  // toujours cet instantané local — jamais le contenu actualisé du serveur.
+  // GARANTIE DE FOND (côté serveur) : chaque lien share.html?id=<shareId>
+  // pointe vers un enregistrement Netlify Blobs propre à CETTE
+  // programmation précise, créé sous un shareId qui n'est jamais réutilisé
+  // (voir create-share.mjs / resolve-card.mjs). Reprogrammer la carte pour
+  // quelqu'un d'autre crée un shareId différent et ne touche jamais celui-ci
+  // — donc ce lien précis affichera toujours le même contenu, sur
+  // n'importe quel appareil, avec ou sans cache local.
+  //
+  // Le cache localStorage ci-dessous n'est qu'un CONFORT (chargement
+  // instantané en cas de reconnexion / mauvais réseau) : ce n'est plus lui
+  // qui protège le contenu déjà partagé, puisque le shareId lui-même est
+  // désormais immuable côté serveur.
   const cacheKey = 'mdea_share_snapshot_' + id;
   try {
     const cached = localStorage.getItem(cacheKey);

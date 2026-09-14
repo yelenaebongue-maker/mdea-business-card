@@ -4012,33 +4012,41 @@ async function activateNFC() {
     return;
   }
 
-  // On écrit le lien UNE SEULE FOIS sur la carte : son contenu se met à
-  // jour automatiquement à chaque fois que vous reprogrammez avec une
-  // nouvelle sélection, via le MÊME identifiant stable. La personne qui a
-  // déjà ouvert ce lien continue de voir ce qui lui a été partagé grâce à
-  // l'instantané mémorisé sur SON téléphone (voir loadShare() dans
-  // share.html) — pas besoin de réécrire la puce à chaque personne.
+  // On écrit la passerelle /api/card UNE SEULE FOIS sur la carte : sa
+  // propre URL ne change jamais. Ce qui change à chaque reprogrammation,
+  // c'est un enregistrement de partage TOUT NEUF (shareId unique, jamais
+  // réutilisé) vers lequel la passerelle redirige au moment du tap — voir
+  // resolve-card.mjs. Résultat concret :
+  //  - la personne qui tape la carte MAINTENANT est redirigée vers un
+  //    lien share.html?id=<shareId du jour> propre à elle ;
+  //  - si elle rouvre ou rafraîchit ce lien plus tard, elle retombe
+  //    TOUJOURS sur ce même contenu figé, même si vous avez reprogrammé
+  //    la carte entre-temps pour quelqu'un d'autre (qui, lui, obtient un
+  //    tap ultérieur redirigé vers un shareId différent) ;
+  //  - la puce physique, elle, n'a jamais besoin d'être réécrite.
   toast('⏳ Envoi vers le cloud…');
-  let url;
+  let gatewayUrl;
   try {
     const cardId = await getStableCardId();
-    const extra = await buildCloudShareExtra(sel, cardId);
+    const freshShareId = generateId(); // toujours nouveau, jamais réutilisé
+    const extra = await buildCloudShareExtra(sel, freshShareId);
     const { files, text } = await buildCloudShareFlatFiles(sel);
-    url = await createCloudShare({ files, text, title: 'MDEA Business Card', extra, fixedId: cardId });
+    await createCloudShare({ files, text, title: 'MDEA Business Card', extra, fixedId: freshShareId, cardId });
+    gatewayUrl = getCardGatewayUrl(cardId);
   } catch (e) {
     toast('Erreur d\'envoi vers le cloud : ' + e.message, '⚠');
     return;
   }
-  document.getElementById('shareLinkInput').value = url;
-  await generateQR(url);
+  document.getElementById('shareLinkInput').value = gatewayUrl;
+  await generateQR(gatewayUrl);
 
   if ('NDEFReader' in window) {
     const ndef = new NDEFReader();
-    ndef.write({ records: [{ recordType: 'url', data: url }] })
-      .then(() => toast(`✓ NFC programmée — ${total} élément(s) prêts`))
+    ndef.write({ records: [{ recordType: 'url', data: gatewayUrl }] })
+      .then(() => toast(`✓ NFC programmée — ${total} élément(s) prêts. Chaque personne qui tapera obtiendra désormais votre sélection actuelle, avec un lien qui lui restera propre.`))
       .catch(e => toast('Erreur NFC : ' + e.message, '⚠'));
   } else {
-    navigator.clipboard?.writeText(url).then(() =>
+    navigator.clipboard?.writeText(gatewayUrl).then(() =>
       toast(`✓ Contenu mis à jour (${total} élément(s)). Lien copié — à écrire UNE SEULE FOIS sur votre tag avec une appli comme "NFC Tools". Ensuite, changez juste votre sélection ici, le tag n'a plus jamais besoin d'être réécrit.`)
     ).catch(() => toast(`${total} élément(s) sélectionnés — copiez le lien ci-dessus`));
   }
@@ -4071,15 +4079,16 @@ async function shareViaLink() {
       toast(`📥 ${files.length} fichier(s) téléchargé(s) — le partage groupé de fichiers n'est pas supporté sur cet appareil`);
       return;
     }
-    // Aucun fichier généré (ex: uniquement réseaux sociaux) -> on utilise
-    // le même lien stable que la carte NFC (voir loadShare() dans
-    // share.html : chaque destinataire garde son propre instantané figé
-    // localement dès sa première ouverture, donc pas besoin d'un lien
-    // séparé ici).
+    // Aucun fichier généré (ex: uniquement réseaux sociaux) -> on crée un
+    // partage FRAIS, avec son propre shareId jamais réutilisé, et on
+    // l'envoie directement à cette personne. On met aussi à jour le
+    // pointeur de la carte (cardId) au passage, pour qu'un tap ultérieur
+    // de la carte physique reflète également cette sélection.
     const cardId = await getStableCardId();
-    const extra = await buildCloudShareExtra(sel, cardId);
+    const freshShareId = generateId(); // toujours nouveau, jamais réutilisé
+    const extra = await buildCloudShareExtra(sel, freshShareId);
     const { files: flatFiles, text: flatText } = await buildCloudShareFlatFiles(sel);
-    const url = await createCloudShare({ files: flatFiles, text: flatText, title: 'MDEA Business Card', extra, fixedId: cardId });
+    const url = await createCloudShare({ files: flatFiles, text: flatText, title: 'MDEA Business Card', extra, fixedId: freshShareId, cardId });
     if (navigator.share) {
       navigator.share({ title: 'MDEA Business Card', text: text || undefined, url }).then(() => toast('Partagé !')).catch(()=>{});
     } else {
@@ -4221,13 +4230,15 @@ async function copyShareLink(event) {
   toast('⏳ Génération du lien…');
   try {
     const cardId = await getStableCardId();
-    const extra = await buildCloudShareExtra(sel, cardId);
+    const freshShareId = generateId(); // toujours nouveau, jamais réutilisé
+    const extra = await buildCloudShareExtra(sel, freshShareId);
     const { files, text } = await buildCloudShareFlatFiles(sel);
-    const url = await createCloudShare({ files, text, title: 'MDEA Business Card', extra, fixedId: cardId });
-    document.getElementById('shareLinkInput').value = url;
-    await generateQR(url);
-    await navigator.clipboard?.writeText(url);
-    toast('✓ Lien copié — il se met à jour à chaque nouvelle sélection, mais chaque personne qui l\'a déjà ouvert continue de voir ce qui lui a été partagé');
+    await createCloudShare({ files, text, title: 'MDEA Business Card', extra, fixedId: freshShareId, cardId });
+    const gatewayUrl = getCardGatewayUrl(cardId);
+    document.getElementById('shareLinkInput').value = gatewayUrl;
+    await generateQR(gatewayUrl);
+    await navigator.clipboard?.writeText(gatewayUrl);
+    toast('✓ Lien copié — il pointe toujours vers votre sélection la plus récente, mais chaque personne qui l\'a déjà ouvert garde son propre lien figé et ne verra jamais changer ce qui lui a été partagé');
   } catch (e) {
     toast('Erreur lors de la génération du lien : ' + e.message, '⚠');
   } finally {
@@ -4242,9 +4253,24 @@ async function copyShareLink(event) {
 // upload-share-file.mjs) — pas de limite de taille pratique comme
 // avec les fonctions classiques (~6 Mo). Les métadonnées du partage
 // (titre, texte, liste des fichiers) sont ensuite enregistrées via
-// une fonction classique. Le tag NFC ne porte que le lien final —
-// n'importe quel téléphone qui tape la carte ouvre share.html, qui
-// va chercher le contenu réel côté serveur.
+// une fonction classique.
+//
+// DEUX NIVEAUX D'IDENTIFIANTS, à ne pas confondre :
+//  - shareId : généré à CHAQUE programmation (generateId()), JAMAIS
+//    réutilisé. C'est la clé sous laquelle le contenu exact de cette
+//    sélection est enregistré, pour toujours, dans Netlify Blobs
+//    (mdea-shares + fichiers sous shares/<shareId>/...). Le lien
+//    share.html?id=<shareId> qui en résulte ne change plus jamais.
+//  - cardId (getStableCardId()) : identifiant STABLE de la carte NFC de
+//    l'utilisateur, qui ne sert PLUS de clé de stockage du contenu. Il ne
+//    sert qu'à mettre à jour le petit registre mdea-card-pointers
+//    ("quel est le shareId actuel de cette carte ?"), consulté par la
+//    passerelle edge function /api/card (resolve-card.mjs) à chaque tap.
+// C'est cette séparation qui garantit que reprogrammer la carte pour une
+// nouvelle personne ne modifie jamais le lien déjà remis à une personne
+// précédente : chaque tap redirige, au moment T, vers le shareId courant,
+// mais l'ancien shareId — et donc l'ancien lien — reste figé pour
+// toujours.
 // ============================================================
 // Upload RÉEL du fichier vers Netlify Blobs via l'edge function
 // upload-share-file.mjs (route /api/upload-file). Pas de limite pratique
@@ -4274,8 +4300,10 @@ async function uploadFileToShare(shareId, file) {
 }
 
 // Identifiant STABLE de la carte de l'utilisateur connecté : ne change
-// jamais, donc le lien écrit une seule fois sur le tag NFC reste valide
-// pour toujours, même quand le contenu (la sélection) change derrière.
+// jamais, donc la passerelle /api/card écrite une seule fois sur le tag
+// NFC (voir getCardGatewayUrl) reste valide pour toujours. Ce qui change
+// à chaque reprogrammation, c'est uniquement l'entrée que ce cardId
+// pointe dans mdea-card-pointers — jamais le cardId lui-même.
 async function getStableCardId() {
   try {
     const user = await NetlifyAuth.getUser();
@@ -4288,10 +4316,18 @@ async function getStableCardId() {
 }
 
 // files: tableau de Blob/File réels — text: résumé textuel — title: titre affiché
-// fixedId: si fourni, réutilise TOUJOURS le même id de partage (lien stable),
-// au lieu d'en générer un nouveau à chaque appel (utile pour les partages
-// "ponctuels" comme une facture ou un pitch, qui eux gardent un id unique).
-async function createCloudShare({ files = [], text = '', title = 'MDEA Business Card', extra = {}, fixedId = null }) {
+// fixedId: si fourni, réutilise CET id de partage précis au lieu d'en
+// générer un nouveau (utile quand l'id a déjà été choisi côté appelant,
+// ex: un shareId fraîchement généré pour "programmer" la carte).
+// cardId: optionnel — si fourni, indique au serveur "ce partage devient le
+// contenu ACTUEL de cette carte physique" : create-share.mjs met alors à
+// jour le registre mdea-card-pointers consulté par la passerelle NFC
+// /api/card à chaque tap. Ne PAS confondre avec fixedId : cardId ne sert
+// JAMAIS de clé de stockage du contenu lui-même (c'est toujours un
+// shareId frais, généré via generateId(), qui joue ce rôle), ce qui
+// garantit que ce partage précis ne sera plus jamais écrasé par une
+// reprogrammation ultérieure.
+async function createCloudShare({ files = [], text = '', title = 'MDEA Business Card', extra = {}, fixedId = null, cardId = null }) {
   const shareId = fixedId || generateId();
   const uploaded = [];
   for (const f of files) {
@@ -4300,7 +4336,7 @@ async function createCloudShare({ files = [], text = '', title = 'MDEA Business 
   }
   const res = await NetlifyAuth.authedFetch('/.netlify/functions/create-share', {
     method: 'POST',
-    body: JSON.stringify({ id: shareId, title, text, files: uploaded, extra })
+    body: JSON.stringify({ id: shareId, title, text, files: uploaded, extra, cardId: cardId || undefined })
   });
   if (!res.ok) {
     let detail = '';
@@ -4308,6 +4344,15 @@ async function createCloudShare({ files = [], text = '', title = 'MDEA Business 
     throw new Error(`Échec de création du partage (http ${res.status})${detail ? ' — ' + detail : ''}`);
   }
   return `${window.location.origin}/share.html?id=${shareId}`;
+}
+
+// URL de la "passerelle carte" : c'est CELLE-CI qu'on écrit sur la puce
+// NFC physique et qu'on encode dans le QR de l'onglet "Programmer la
+// carte". Son contenu final (où elle redirige) est résolu par le serveur
+// à chaque tap — voir resolve-card.mjs — donc elle n'a jamais besoin
+// d'être réécrite sur le tag, même après une reprogrammation.
+function getCardGatewayUrl(cardId) {
+  return `${window.location.origin}/api/card?id=${encodeURIComponent(cardId)}`;
 }
 
 // Raccourci pour les partages "un seul document" (facture, pitch, word doc)
