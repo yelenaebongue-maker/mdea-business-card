@@ -4012,13 +4012,16 @@ async function activateNFC() {
     return;
   }
 
-  // Upload réel des éléments cochés vers Firebase (Storage + Firestore),
-  // puis on écrit le VRAI lien obtenu sur le tag NFC (le tag ne porte que
-  // ce petit lien — le contenu, lui, vit sur le cloud).
+  // On écrit le lien UNE SEULE FOIS sur la carte : son contenu se met à
+  // jour automatiquement à chaque fois que vous reprogrammez avec une
+  // nouvelle sélection, via le MÊME identifiant stable. La personne qui a
+  // déjà ouvert ce lien continue de voir ce qui lui a été partagé grâce à
+  // l'instantané mémorisé sur SON téléphone (voir loadShare() dans
+  // share.html) — pas besoin de réécrire la puce à chaque personne.
   toast('⏳ Envoi vers le cloud…');
   let url;
   try {
-    const cardId = await getStableCardId(); // lien fixe, ne change jamais
+    const cardId = await getStableCardId();
     const extra = await buildCloudShareExtra(sel, cardId);
     const { files, text } = await buildCloudShareFlatFiles(sel);
     url = await createCloudShare({ files, text, title: 'MDEA Business Card', extra, fixedId: cardId });
@@ -4036,7 +4039,7 @@ async function activateNFC() {
       .catch(e => toast('Erreur NFC : ' + e.message, '⚠'));
   } else {
     navigator.clipboard?.writeText(url).then(() =>
-      toast(`✓ Contenu mis à jour (${total} élément(s)). Lien copié — à écrire UNE SEULE FOIS sur votre tag avec une appli comme "NFC Tools" (iPhone/Android). Ensuite, changez juste votre sélection ici, le tag n'a plus jamais besoin d'être réécrit.`)
+      toast(`✓ Contenu mis à jour (${total} élément(s)). Lien copié — à écrire UNE SEULE FOIS sur votre tag avec une appli comme "NFC Tools". Ensuite, changez juste votre sélection ici, le tag n'a plus jamais besoin d'être réécrit.`)
     ).catch(() => toast(`${total} élément(s) sélectionnés — copiez le lien ci-dessus`));
   }
 }
@@ -4068,11 +4071,15 @@ async function shareViaLink() {
       toast(`📥 ${files.length} fichier(s) téléchargé(s) — le partage groupé de fichiers n'est pas supporté sur cet appareil`);
       return;
     }
-    // Aucun fichier généré (ex: uniquement réseaux sociaux) -> on crée un
-    // lien de partage INDÉPENDANT propre à cette personne (voir
-    // createFreshCloudShare) plutôt que de réutiliser le lien de la carte
-    // NFC, qui changerait si la sélection est modifiée plus tard.
-    const url = await createFreshCloudShare(sel);
+    // Aucun fichier généré (ex: uniquement réseaux sociaux) -> on utilise
+    // le même lien stable que la carte NFC (voir loadShare() dans
+    // share.html : chaque destinataire garde son propre instantané figé
+    // localement dès sa première ouverture, donc pas besoin d'un lien
+    // séparé ici).
+    const cardId = await getStableCardId();
+    const extra = await buildCloudShareExtra(sel, cardId);
+    const { files: flatFiles, text: flatText } = await buildCloudShareFlatFiles(sel);
+    const url = await createCloudShare({ files: flatFiles, text: flatText, title: 'MDEA Business Card', extra, fixedId: cardId });
     if (navigator.share) {
       navigator.share({ title: 'MDEA Business Card', text: text || undefined, url }).then(() => toast('Partagé !')).catch(()=>{});
     } else {
@@ -4191,12 +4198,11 @@ async function shareSelectedPDFviaLink() {
 }
 
 // Crée un partage cloud INDÉPENDANT, avec son propre identifiant à chaque
-// appel — jamais réutilisé. C'est ce qui garantit que "Copier le lien" et
-// "Envoyer ma sélection" produisent un lien figé, propre à la personne à
-// qui on l'envoie : changer la sélection plus tard pour quelqu'un d'autre
-// ne modifiera jamais ce lien déjà distribué. Seule "Programmer la carte
-// NFC" continue d'utiliser l'identifiant STABLE (getStableCardId()), car
-// il est physiquement gravé sur le tag et ne doit jamais changer.
+// appel — jamais réutilisé. C'est ce qui garantit que "Programmer la carte
+// NFC", "Copier le lien" et "Envoyer ma sélection" produisent chacun un
+// lien figé, propre à la personne à qui on le destine : reprogrammer la
+// carte ou changer la sélection ensuite pour quelqu'un d'autre ne modifie
+// JAMAIS les liens déjà distribués auparavant.
 async function createFreshCloudShare(sel) {
   const shareId = generateId(); // toujours nouveau, jamais réutilisé
   const extra = await buildCloudShareExtra(sel, shareId);
@@ -4214,11 +4220,14 @@ async function copyShareLink(event) {
   if (btn) { btn.disabled = true; btn.textContent = '…'; }
   toast('⏳ Génération du lien…');
   try {
-    const url = await createFreshCloudShare(sel);
+    const cardId = await getStableCardId();
+    const extra = await buildCloudShareExtra(sel, cardId);
+    const { files, text } = await buildCloudShareFlatFiles(sel);
+    const url = await createCloudShare({ files, text, title: 'MDEA Business Card', extra, fixedId: cardId });
     document.getElementById('shareLinkInput').value = url;
     await generateQR(url);
     await navigator.clipboard?.writeText(url);
-    toast('✓ Lien copié — propre à ce partage, ne changera plus même si vous modifiez votre sélection ensuite');
+    toast('✓ Lien copié — il se met à jour à chaque nouvelle sélection, mais chaque personne qui l\'a déjà ouvert continue de voir ce qui lui a été partagé');
   } catch (e) {
     toast('Erreur lors de la génération du lien : ' + e.message, '⚠');
   } finally {

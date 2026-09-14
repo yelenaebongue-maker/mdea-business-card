@@ -364,12 +364,31 @@ async function loadShare() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get('id');
   if (!id) { renderState('<p>Lien de partage invalide.</p>'); return; }
+
+  // IMPORTANT : le lien de la carte NFC est écrit UNE SEULE FOIS et son
+  // contenu se met à jour automatiquement selon la sélection courante côté
+  // propriétaire. Pour qu'une personne continue de voir EXACTEMENT ce qui
+  // lui a été partagé (même si le propriétaire reprogramme ensuite pour
+  // quelqu'un d'autre sur ce même lien), on mémorise sur SON téléphone,
+  // dès la première ouverture, un instantané figé de ce qu'elle a reçu. Les
+  // ouvertures suivantes de ce même lien, sur ce même appareil, réaffichent
+  // toujours cet instantané local — jamais le contenu actualisé du serveur.
+  const cacheKey = 'mdea_share_snapshot_' + id;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      renderShare(JSON.parse(cached));
+      return;
+    }
+  } catch (e) { /* localStorage indisponible — on continue normalement */ }
+
   try {
     const res = await fetch(`/.netlify/functions/get-share?id=${encodeURIComponent(id)}`);
     if (res.status === 404) { renderState('<p>Ce partage n\'existe pas ou a expiré.</p>'); return; }
     if (!res.ok) throw new Error('http ' + res.status);
     const data = await res.json();
     renderShare(data);
+    try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) { /* stockage plein/indisponible, tant pis */ }
   } catch (e) {
     console.error(e);
     renderState('<p>Impossible de charger ce partage pour le moment.</p>');
