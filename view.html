@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document — MDEA Business Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --black:#000; --white:#fff; --off-white:#f5f4f0; --mid-gray:#8a8680;
+    --charcoal:#1a1917; --gold:#c9a96e; --gold-light:#e5c99a;
+    --font-body:'Montserrat',sans-serif;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; }
+  body {
+    background:var(--black); color:var(--white); font-family:var(--font-body);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  a { text-decoration:none; }
+
+  .bar {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.08); flex-shrink:0;
+    background:var(--charcoal);
+  }
+  .back-link {
+    display:flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:600;
+    letter-spacing:0.04em; color:var(--off-white); padding:8px 6px; flex-shrink:0;
+  }
+  .back-link:hover { color:var(--gold); }
+  .filename {
+    flex:1; min-width:0; font-size:0.78rem; color:var(--mid-gray);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;
+  }
+  .dl-btn {
+    font-size:0.6rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--black); background:var(--gold); padding:9px 16px; border-radius:4px;
+    white-space:nowrap; transition:.25s; flex-shrink:0;
+  }
+  .dl-btn:hover { background:var(--gold-light); }
+
+  .viewer { flex:1; min-height:0; background:#000; display:flex; align-items:center; justify-content:center; overflow:auto; }
+  .viewer iframe { width:100%; height:100%; border:none; }
+  .viewer img { max-width:100%; max-height:100%; object-fit:contain; }
+  .fallback { text-align:center; color:var(--mid-gray); font-size:0.85rem; padding:40px 24px; line-height:1.6; }
+  .fallback .big-dl {
+    display:inline-block; margin-top:18px; font-size:0.68rem; font-weight:600; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--black); background:var(--gold); padding:12px 24px; border-radius:6px;
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <a class="back-link" id="backLink" href="/share.html">← Retour à la carte</a>
+  <div class="filename" id="filenameLabel"></div>
+  <a class="dl-btn" id="dlBtn" href="#" download>Télécharger</a>
+</div>
+<div class="viewer" id="viewer"></div>
+
+<script>
+function escHtml(s) {
+  return (s || '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// Ajoute ?dl=1 aux liens /api/shared-file pour forcer un vrai
+// téléchargement côté serveur (voir get-shared-file.mjs).
+function withDownload(url) {
+  if (!url || !url.includes('/api/shared-file')) return url;
+  return url + (url.includes('?') ? '&dl=1' : '?dl=1');
+}
+
+const params = new URLSearchParams(window.location.search);
+const fileUrl = params.get('url');
+const name = params.get('name') || 'Document';
+const back = params.get('back');
+
+document.getElementById('filenameLabel').textContent = name;
+document.title = name + ' — MDEA Business Card';
+if (back) document.getElementById('backLink').href = `/share.html?id=${encodeURIComponent(back)}`;
+
+const dlBtn = document.getElementById('dlBtn');
+if (fileUrl) {
+  dlBtn.href = withDownload(fileUrl);
+  dlBtn.setAttribute('download', name);
+} else {
+  dlBtn.style.display = 'none';
+}
+
+const viewer = document.getElementById('viewer');
+if (!fileUrl) {
+  viewer.innerHTML = `<div class="fallback">Document introuvable.</div>`;
+} else {
+  const lowerName = name.toLowerCase();
+  const isImage = /\.(png|jpe?g|gif|webp|svg)$/.test(lowerName);
+  const isPdf = lowerName.endsWith('.pdf');
+
+  if (isImage) {
+    const img = document.createElement('img');
+    img.src = fileUrl;
+    img.alt = name;
+    viewer.appendChild(img);
+  } else if (isPdf) {
+    // Rendu natif du navigateur (le même lecteur PDF que si on ouvrait
+    // le fichier directement) — mais dans une page qui garde la barre
+    // "Retour à la carte" toujours visible en haut.
+    const iframe = document.createElement('iframe');
+    iframe.src = fileUrl;
+    viewer.appendChild(iframe);
+  } else {
+    // Types que le navigateur ne sait pas afficher nativement (.pptx,
+    // .docx, .xlsx...) : pas d'iframe (resterait vide ou illisible),
+    // on propose directement le téléchargement.
+    viewer.innerHTML = `<div class="fallback">
+      L'aperçu n'est pas disponible pour ce type de fichier dans le navigateur.<br>
+      <a class="big-dl" href="${withDownload(fileUrl)}" download="${escHtml(name)}">Télécharger ${escHtml(name)}</a>
+    </div>`;
+  }
+}
+</script>
+</body>
+</html>
