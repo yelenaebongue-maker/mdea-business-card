@@ -6,6 +6,7 @@
 <title>Document — MDEA Business Card</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
   :root {
@@ -42,9 +43,13 @@
   }
   .dl-btn:hover { background:var(--gold-light); }
 
-  .viewer { flex:1; min-height:0; background:#000; display:flex; align-items:center; justify-content:center; overflow:auto; }
-  .viewer iframe { width:100%; height:100%; border:none; }
+  .viewer { flex:1; min-height:0; background:#4a4a4a; display:flex; align-items:center; justify-content:center; overflow:auto; }
+  /* Mode "PDF multi-pages" : défilement vertical normal, une page sous
+     l'autre, comme un vrai lecteur PDF — plus de centrage flex figé. */
+  .viewer.pages { display:block; padding:16px 0; }
+  .viewer.pages canvas { display:block; max-width:100%; height:auto; margin:0 auto 14px; box-shadow:0 4px 20px rgba(0,0,0,0.4); background:#fff; }
   .viewer img { max-width:100%; max-height:100%; object-fit:contain; }
+  .pdf-loading { color:var(--mid-gray); font-size:0.8rem; text-align:center; padding:40px; }
   .fallback { text-align:center; color:var(--mid-gray); font-size:0.85rem; padding:40px 24px; line-height:1.6; }
   .fallback .big-dl {
     display:inline-block; margin-top:18px; font-size:0.68rem; font-weight:600; letter-spacing:0.1em;
@@ -70,6 +75,46 @@ function escHtml(s) {
 function withDownload(url) {
   if (!url || !url.includes('/api/shared-file')) return url;
   return url + (url.includes('?') ? '&dl=1' : '?dl=1');
+}
+
+// Rend TOUTES les pages du PDF nous-mêmes, avec PDF.js (Mozilla), plutôt
+// que de compter sur le lecteur PDF intégré au navigateur dans une
+// <iframe> — celui-ci est peu fiable sur mobile (souvent une seule page
+// visible, mal cadrée, zoom capricieux). Ici, chaque page devient une
+// image (<canvas>) empilée dans un flux qui défile normalement, avec le
+// zoom natif du navigateur (pincer-zoomer) qui fonctionne comme sur une
+// vraie image.
+async function renderPdf(url) {
+  const viewer = document.getElementById('viewer');
+  viewer.innerHTML = '<div class="pdf-loading">Chargement du document…</div>';
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pdf = await pdfjsLib.getDocument(url).promise;
+    viewer.innerHTML = '';
+    viewer.classList.add('pages');
+
+    // Résolution adaptée à l'écran : plus net sur les écrans "retina"
+    // (mobile notamment) sans non plus générer des images inutilement
+    // lourdes sur un écran classique.
+    const targetScale = Math.min(2.5, (window.devicePixelRatio || 1) * 1.3);
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: targetScale });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      viewer.appendChild(canvas);
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    }
+  } catch (e) {
+    console.error(e);
+    viewer.classList.remove('pages');
+    viewer.innerHTML = `<div class="fallback">
+      Impossible d'afficher l'aperçu de ce PDF.<br>
+      <a class="big-dl" href="${withDownload(url)}" download>Télécharger le document</a>
+    </div>`;
+  }
 }
 
 const params = new URLSearchParams(window.location.search);
@@ -103,12 +148,7 @@ if (!fileUrl) {
     img.alt = name;
     viewer.appendChild(img);
   } else if (isPdf) {
-    // Rendu natif du navigateur (le même lecteur PDF que si on ouvrait
-    // le fichier directement) — mais dans une page qui garde la barre
-    // "Retour à la carte" toujours visible en haut.
-    const iframe = document.createElement('iframe');
-    iframe.src = fileUrl;
-    viewer.appendChild(iframe);
+    renderPdf(fileUrl);
   } else {
     // Types que le navigateur ne sait pas afficher nativement (.pptx,
     // .docx, .xlsx...) : pas d'iframe (resterait vide ou illisible),
