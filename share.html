@@ -109,6 +109,13 @@
     white-space:nowrap; transition:.25s;
   }
   .file-action:hover { background:var(--gold-light); }
+  .file-actions { display:flex; gap:8px; flex-shrink:0; }
+  .file-action-outline {
+    font-size:0.6rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--gold); background:transparent; border:1px solid var(--gold); padding:8px 15px;
+    border-radius:var(--radius-sm); white-space:nowrap; transition:.25s;
+  }
+  .file-action-outline:hover { background:rgba(212,175,55,0.1); }
 
   .footer-brand { text-align:center; padding:30px 24px 10px; font-size:0.58rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--mid-gray); }
   .footer-brand span { color:var(--gold); }
@@ -285,7 +292,10 @@ function renderPitchesSection(pitches) {
         <div class="pitch-name">${escHtml(p.name)}</div>
         <div class="pitch-meta">${[p.type, p.size].filter(Boolean).map(escHtml).join(' · ')}</div>
       </div>
-      ${p.fileUrl ? `<a class="file-action" href="${withDownload(p.fileUrl)}" download="${escHtml(p.fileName || p.name)}">Télécharger</a>` : ''}
+      ${p.fileUrl ? `<div class="file-actions">
+        <a class="file-action-outline" href="${escHtml(p.fileUrl)}" target="_blank" rel="noopener">Ouvrir</a>
+        <a class="file-action" href="${withDownload(p.fileUrl)}" download="${escHtml(p.fileName || p.name)}">Télécharger</a>
+      </div>` : ''}
     </div>`;
   });
   return html;
@@ -301,7 +311,10 @@ function renderFilesSection(files) {
         <div class="file-name">${escHtml(f.name)}</div>
         <div class="file-meta">${formatSize(f.size)}</div>
       </div>
-      <a class="file-action" href="${withDownload(f.url)}" download="${escHtml(f.name)}">Télécharger</a>
+      <div class="file-actions">
+        <a class="file-action-outline" href="${escHtml(f.url)}" target="_blank" rel="noopener">Ouvrir</a>
+        <a class="file-action" href="${withDownload(f.url)}" download="${escHtml(f.name)}">Télécharger</a>
+      </div>
     </div>`;
   });
   html += '</div>';
