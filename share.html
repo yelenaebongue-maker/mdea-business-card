@@ -146,47 +146,32 @@ function getSocialIcon(platform) {
   return map[p] || '🔗';
 }
 // Ajoute ?dl=1 (ou &dl=1) aux liens /api/shared-file pour dire au serveur
-// de forcer un vrai téléchargement (Content-Disposition: attachment) —
-// nécessaire car Safari iOS ignore l'attribut HTML `download`. On ne
-// touche qu'aux liens qui pointent vers cette fonction ; les autres URLs
-// (rares) restent inchangées.
+// de forcer un vrai téléchargement (Content-Disposition: attachment). On
+// ne touche qu'aux liens qui pointent vers cette fonction ; les autres
+// URLs (rares) restent inchangées.
 function withDownload(url) {
   if (!url || !url.includes('/api/shared-file')) return url;
   return url + (url.includes('?') ? '&dl=1' : '?dl=1');
 }
-// Force un VRAI téléchargement au clic : on récupère le fichier en Blob
-// puis on déclenche un lien local temporaire — cette méthode fonctionne de
-// façon fiable même sur Safari iOS, contrairement à une simple navigation
-// vers l'URL (qui peut ouvrir un aperçu au lieu de télécharger). Le href
-// original reste en place comme repli si le fetch échoue. Délégation sur
-// le document (pas d'onclick inline) pour éviter tout souci d'échappement
-// avec des noms de fichiers contenant des caractères spéciaux.
-document.addEventListener('click', async (event) => {
-  const link = event.target.closest('.js-force-download');
-  if (!link) return;
-  event.preventDefault();
-  const url = link.dataset.url;
-  const filename = link.dataset.filename || 'fichier';
-  const originalText = link.textContent;
-  link.textContent = '…';
-  try {
-    const res = await fetch(withDownload(url));
-    if (!res.ok) throw new Error('http ' + res.status);
-    const blob = await res.blob();
-    const objUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = objUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
-  } catch (e) {
-    window.location.href = withDownload(url);
-  } finally {
-    link.textContent = originalText;
-  }
-});
+// Le téléchargement forcé est géré UNIQUEMENT par le serveur (l'en-tête
+// Content-Disposition: attachment renvoyé par get-shared-file.mjs quand
+// dl=1 est présent) : on laisse simplement le navigateur suivre le lien
+// href="...&dl=1" normalement, sans aucun JavaScript.
+//
+// Avant, un script interceptait le clic pour récupérer le fichier en
+// Blob avant de le "sauver" via un lien temporaire. Cette méthode casse
+// sur Safari iOS : dès qu'un `await` s'intercale entre le clic et le
+// déclenchement du téléchargement, Safari considère qu'il ne s'agit
+// plus d'un geste utilisateur direct et se contente d'ouvrir un aperçu
+// au lieu de télécharger. La navigation directe, elle, préserve ce
+// geste et fonctionne de façon fiable sur Safari iOS, Chrome Android et
+// les navigateurs de bureau — c'est le en-tête serveur qui fait tout le
+// travail, pas de bidouille côté client.
+//
+// Pas de target="_blank" non plus : avec Content-Disposition: attachment,
+// ouvrir un nouvel onglet ne sert à rien (rien ne s'y affiche, le fichier
+// part directement en téléchargement) et peut, sur certains navigateurs
+// mobiles, faire échouer ou retarder le téléchargement.
 
 async function saveContact(vcardFile) {
   try {
@@ -300,7 +285,7 @@ function renderPitchesSection(pitches) {
         <div class="pitch-name">${escHtml(p.name)}</div>
         <div class="pitch-meta">${[p.type, p.size].filter(Boolean).map(escHtml).join(' · ')}</div>
       </div>
-      ${p.fileUrl ? `<a class="file-action js-force-download" href="${withDownload(p.fileUrl)}" target="_blank" rel="noopener" download="${escHtml(p.fileName || p.name)}" data-url="${escHtml(p.fileUrl)}" data-filename="${escHtml(p.fileName || p.name)}">Télécharger</a>` : ''}
+      ${p.fileUrl ? `<a class="file-action" href="${withDownload(p.fileUrl)}" download="${escHtml(p.fileName || p.name)}">Télécharger</a>` : ''}
     </div>`;
   });
   return html;
@@ -316,7 +301,7 @@ function renderFilesSection(files) {
         <div class="file-name">${escHtml(f.name)}</div>
         <div class="file-meta">${formatSize(f.size)}</div>
       </div>
-      <a class="file-action js-force-download" href="${withDownload(f.url)}" target="_blank" rel="noopener" download="${escHtml(f.name)}" data-url="${escHtml(f.url)}" data-filename="${escHtml(f.name)}">Ouvrir</a>
+      <a class="file-action" href="${withDownload(f.url)}" download="${escHtml(f.name)}">Télécharger</a>
     </div>`;
   });
   html += '</div>';
