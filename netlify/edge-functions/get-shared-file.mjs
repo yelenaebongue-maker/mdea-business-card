@@ -18,13 +18,13 @@ export default async (req) => {
 
   if (!entry || !entry.data) return new Response('Fichier introuvable', { status: 404 });
 
-  const contentType = (entry.metadata && entry.metadata.contentType) || 'application/octet-stream';
+  const realContentType = (entry.metadata && entry.metadata.contentType) || 'application/octet-stream';
 
   // Le forçage du téléchargement ("attachment") n'est appliqué QUE quand
   // l'appelant le demande explicitement via ?dl=1 — c'est share.html qui
-  // ajoute ce paramètre sur les liens "Télécharger" (factures, pitchs).
-  // Sans ce paramètre, le fichier reste "inline" comme avant : les
-  // <img src="/api/shared-file?...">  utilisées ailleurs dans
+  // ajoute ce paramètre sur les liens "Télécharger" (factures, pitchs,
+  // documents). Sans ce paramètre, le fichier reste "inline" comme avant :
+  // les <img src="/api/shared-file?...">  utilisées ailleurs dans
   // l'application (photo de profil, images de portfolio, logos
   // partenaires) continuent de s'afficher normalement, et ne se
   // retrouvent jamais forcées en téléchargement par erreur.
@@ -32,11 +32,29 @@ export default async (req) => {
   const disposition = forceDownload ? 'attachment' : 'inline';
   const safeName = name.replace(/"/g, "'");
 
+  // Quand on force le téléchargement, on sert le fichier avec un type
+  // générique (application/octet-stream) au lieu de son vrai type
+  // (application/pdf, image/jpeg...). C'est volontaire : certains
+  // navigateurs/webviews mobiles ignorent parfois l'en-tête
+  // Content-Disposition: attachment quand ils reconnaissent un type
+  // qu'ils savent prévisualiser nativement (PDF notamment), et ouvrent le
+  // fichier au lieu de le télécharger. Un type générique et inconnu ne
+  // peut, par définition, pas être prévisualisé : le navigateur n'a alors
+  // plus d'autre choix que de proposer/déclencher le téléchargement. Ça
+  // ne change rien pour l'utilisateur final — le nom de fichier (donc
+  // son extension .pdf, .jpg, etc.) est conservé via Content-Disposition,
+  // donc le fichier reste ouvrable normalement une fois téléchargé.
+  const contentType = forceDownload ? 'application/octet-stream' : realContentType;
+
   return new Response(entry.data, {
     status: 200,
     headers: {
       'Content-Type': contentType,
       'Content-Disposition': `${disposition}; filename="${safeName}"`,
+      // Empêche le navigateur d'essayer quand même de deviner/afficher le
+      // contenu à partir de son contenu réel plutôt que du Content-Type
+      // annoncé — encore une protection contre la prévisualisation.
+      'X-Content-Type-Options': 'nosniff',
       // IMPORTANT : PAS de cache long/"immutable" ici. Le contenu à cette
       // URL n'est PAS réellement figé : une photo de profil, une facture
       // ou un pitch peuvent être remplacés sous le même id+nom. Un cache
