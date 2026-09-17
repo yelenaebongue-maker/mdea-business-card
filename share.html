@@ -70,7 +70,7 @@
   .timeline-date { font-size:0.65rem; color:var(--mid-gray); margin-top:2px; }
   .timeline-desc { font-size:0.78rem; color:var(--mid-gray); margin-top:6px; line-height:1.6; }
   .partners-row { display:flex; flex-wrap:wrap; gap:16px; align-items:center; }
-  .partner-logo { height:36px; max-width:100px; object-fit:contain; filter:grayscale(1) brightness(1.6); opacity:0.85; }
+  .partner-logo { height:36px; max-width:100px; object-fit:contain; }
   .socials-row { display:flex; flex-wrap:wrap; gap:10px; }
   .social-btn { border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:9px 15px; font-size:0.72rem; color:var(--light-gray); }
   .social-btn:hover { border-color:var(--gold); color:var(--gold); }
@@ -337,9 +337,36 @@ function renderFilesSection(files) {
   return html;
 }
 
+// Palette des thèmes couleur (miroir exact des classes body.theme-* de
+// index.html) : permet à cette page de reprendre le même thème que celui
+// choisi par le propriétaire dans l'éditeur, au lieu de toujours afficher
+// le noir/or par défaut. '' = thème par défaut (Or Noir), on ne touche à
+// rien dans ce cas.
+const SHARE_THEMES = {
+  silver:    { gold:'#b8bec8', goldLight:'#d8dee8', charcoal:'#18191c' },
+  ruby:      { gold:'#c0314a', goldLight:'#e05570', charcoal:'#1c1518' },
+  sapphire:  { gold:'#4a7fc1', goldLight:'#7aabee', charcoal:'#141820' },
+  emerald:   { gold:'#2e9970', goldLight:'#5abf96', charcoal:'#131c18' },
+  amethyst:  { gold:'#9466c8', goldLight:'#bb99ee', charcoal:'#181520' },
+  copper:    { gold:'#c87540', goldLight:'#e09a68', charcoal:'#1c1714' },
+  platinum:  { gold:'#9eaab5', goldLight:'#c8d8e4', charcoal:'#131820', black:'#0a0e12' },
+  rose:      { gold:'#c86888', goldLight:'#e89ab2', charcoal:'#1c1418' },
+  ivory:     { gold:'#d4a853', goldLight:'#edd090', charcoal:'#1c1a14', black:'#0d0b08' }
+};
+function applyShareTheme(themeName) {
+  const t = SHARE_THEMES[themeName];
+  if (!t) return; // '' ou thème inconnu -> on garde le noir/or par défaut
+  const root = document.documentElement.style;
+  root.setProperty('--gold', t.gold);
+  root.setProperty('--gold-light', t.goldLight);
+  root.setProperty('--charcoal', t.charcoal);
+  if (t.black) root.setProperty('--black', t.black);
+}
+
 function renderShare(data) {
   const files = data.files || [];
   const extra = data.extra || {};
+  applyShareTheme(extra.theme || '');
   const vcard = files.find(f => f.type?.includes('vcard') || f.name?.toLowerCase().endsWith('.vcf'));
   // Les fichiers déjà représentés ailleurs (vCard -> bouton dédié) ne sont
   // pas listés une deuxième fois dans "Documents".

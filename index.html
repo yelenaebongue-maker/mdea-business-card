@@ -830,10 +830,9 @@ main {
 .vp-partners { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
 .vp-partner-logo {
   height: 40px; max-width: 120px; object-fit: contain;
-  filter: grayscale(100%) brightness(1.5) opacity(0.7);
   transition: var(--transition);
 }
-.vp-partner-logo:hover { filter: none; opacity: 1; }
+.vp-partner-logo:hover { opacity: 0.85; }
 
 /* ============================================================
    PORTFOLIO
@@ -2031,7 +2030,7 @@ main {
         <!-- Hint -->
         <div class="share-hint-bar">
           <span style="color:var(--gold)">💡</span>
-          Cochez uniquement ce que vous souhaitez partager ci-dessous (profil, portfolio, réseaux, pitchs, factures). Le bouton <strong>"Envoyer ma sélection"</strong> transmet en un geste les vrais fichiers des éléments cochés — rien d'autre. La carte NFC physique ne peut porter qu'un petit lien ou un contact (mémoire limitée du tag).
+          Cochez uniquement ce que vous souhaitez partager ci-dessous (profil, portfolio, réseaux, pitchs, factures). Le bouton <strong>"Envoyer ma sélection"</strong> transmet en un geste les vrais fichiers des éléments cochés — rien d'autre.
         </div>
 
         <!-- PROFIL -->
@@ -2289,6 +2288,15 @@ async function externalizeStoreMedia() {
   for (const p of store.pitches) {
     if (p.file) p.file = await externalizeDataUrl(p.file, bucket, `pitch_${p.id}${p.filename ? '.' + p.filename.split('.').pop() : ''}`);
   }
+  // Factures issues de l'import Word (voir exportWordToPDF()) : le PDF
+  // généré est gardé en data: URL le temps de cette sauvegarde, puis
+  // externalisé ici vers Netlify Blobs comme n'importe quel autre fichier
+  // — sinon un PDF de plusieurs Mo dans le JSON ferait dépasser la limite
+  // de save-data.mjs et casserait TOUTE la sauvegarde (voir le
+  // commentaire au-dessus de sanitizeForSave()).
+  for (const inv of store.invoices) {
+    if (inv.file) inv.file = await externalizeDataUrl(inv.file, bucket, `invoice_${inv.id}.pdf`);
+  }
 }
 
 let cloudSaveTimer = null;
@@ -2351,14 +2359,15 @@ async function saveStoreToCloud() {
     const profilesR = sanitizeForSave(store.profiles, ['photo', 'partnerLogos']);
     const projectsR = sanitizeForSave(store.projects, ['image']);
     const pitchesR  = sanitizeForSave(store.pitches, ['file']);
-    const allDropped = [...profilesR.dropped, ...projectsR.dropped, ...pitchesR.dropped].filter(Boolean);
+    const invoicesR = sanitizeForSave(store.invoices, ['file']);
+    const allDropped = [...profilesR.dropped, ...projectsR.dropped, ...pitchesR.dropped, ...invoicesR.dropped].filter(Boolean);
 
     const fullSnapshot = {
       profiles: profilesR.clean,
       projects: projectsR.clean,
       socials: store.socials,
       pitches: pitchesR.clean,
-      invoices: store.invoices,
+      invoices: invoicesR.clean,
       companyName: store.companyName,
       savedAt: Date.now()
     };
@@ -3239,6 +3248,17 @@ async function dataURLtoBlobAsync(dataURL) {
     return dataURLtoBlob(dataURL); // repli sur la méthode manuelle
   }
 }
+// Sens inverse : Blob -> data: URL. Utilisé pour garder temporairement en
+// mémoire (avant externalisation vers Netlify Blobs) un PDF généré côté
+// client, ex: la facture issue de l'import Word — voir exportWordToPDF().
+function blobToDataURL(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
 // Convertit soit une data: URL (base64 local), soit une vraie URL déjà
 // hébergée (photo/image/fichier externalisé par externalizeStoreMedia())
 // en Blob. Nécessaire car après une sauvegarde cloud, p.image / p.file /
@@ -3388,6 +3408,35 @@ function renderInvoices() {
   let html = '';
   store.invoices.forEach(inv => {
     const fmt = n => n?.toLocaleString('fr-FR', {minimumFractionDigits:2}) + ' ' + (inv.currency||'FCFA');
+    // Facture "fichier importé" (import Word converti en PDF) : pas de
+    // client/montant structuré à afficher, juste le nom du fichier — et
+    // des actions Aperçu/Télécharger qui ouvrent directement ce PDF au
+    // lieu de reconstruire un rendu HTML comme pour une facture classique.
+    if (inv.isFileInvoice) {
+      html += `
+      <div class="card invoice-card">
+        <div class="card-accent"></div>
+        <div class="invoice-card-inner">
+          <div class="invoice-number">📄 ${inv.number || inv.filename || 'Facture'}</div>
+          <div class="invoice-client">Document importé</div>
+          <div class="invoice-meta">Généré le ${inv.date}</div>
+          <span class="invoice-status status-${inv.status}">${statusLabel[inv.status]||inv.status}</span>
+        </div>
+        <div class="invoice-card-footer">
+          <button class="btn-outline" onclick="viewFileInvoice('${inv.id}')">👁 Aperçu</button>
+          <button class="btn-ghost" onclick="downloadFileInvoice('${inv.id}')" title="Télécharger">⬇</button>
+          <button class="btn-ghost" onclick="shareFileInvoiceNFC('${inv.id}')" title="Partager via NFC">⬡</button>
+          <select class="form-input" style="font-size:0.65rem;padding:7px 10px;max-width:130px" onchange="setInvoiceStatus('${inv.id}',this.value)">
+            <option value="draft" ${inv.status==='draft'?'selected':''}>Brouillon</option>
+            <option value="sent"  ${inv.status==='sent'?'selected':''}>Envoyée</option>
+            <option value="paid"  ${inv.status==='paid'?'selected':''}>Payée</option>
+            <option value="overdue" ${inv.status==='overdue'?'selected':''}>En retard</option>
+          </select>
+          <button class="btn-danger" onclick="deleteInvoice('${inv.id}')">✕</button>
+        </div>
+      </div>`;
+      return;
+    }
     html += `
     <div class="card invoice-card">
       <div class="card-accent"></div>
@@ -3665,6 +3714,15 @@ function openShareModal() {
   let invHtml = '';
   store.invoices.forEach(inv => {
     const fmt = n => (n||0).toLocaleString('fr-FR',{minimumFractionDigits:0}) + ' ' + (inv.currency||'FCFA');
+    if (inv.isFileInvoice) {
+      invHtml += `<div class="share-check-item" data-id="${inv.id}" data-type="invoice" onclick="toggleShareItem(this)">
+        <div class="share-checkbox"></div>
+        <div class="share-item-name">📄 ${inv.number || inv.filename || 'Facture'}</div>
+        <div class="share-item-meta" style="flex:1">Document importé</div>
+        <span class="share-item-badge" style="color:${statusColors[inv.status]||'var(--mid-gray)'};border-color:currentColor">${statusLabels[inv.status]||inv.status}</span>
+      </div>`;
+      return;
+    }
     invHtml += `<div class="share-check-item" data-id="${inv.id}" data-type="invoice" onclick="toggleShareItem(this)">
       <div class="share-checkbox"></div>
       <div class="share-item-name">${inv.number} — ${inv.toName}</div>
@@ -3690,6 +3748,14 @@ function openShareModal() {
   let pdfInvHtml = '';
   store.invoices.forEach(inv => {
     const fmt = n => (n||0).toLocaleString('fr-FR',{minimumFractionDigits:0}) + ' ' + (inv.currency||'FCFA');
+    if (inv.isFileInvoice) {
+      pdfInvHtml += `<div class="share-check-item" data-id="${inv.id}" data-type="invoice-pdf" onclick="toggleShareItem(this)">
+        <div class="share-checkbox"></div>
+        <div class="share-item-name">📄 ${inv.number || inv.filename || 'Facture'}</div>
+        <div class="share-item-meta" style="flex:1">Document importé · ${inv.date}</div>
+      </div>`;
+      return;
+    }
     pdfInvHtml += `<div class="share-check-item" data-id="${inv.id}" data-type="invoice-pdf" onclick="toggleShareItem(this)">
       <div class="share-checkbox"></div>
       <div class="share-item-name">${inv.number} — ${inv.toName}</div>
@@ -3875,6 +3941,10 @@ async function resolveMediaUrl(shareId, value, hintName) {
 // l'application, pas juste une liste de fichiers.
 async function buildCloudShareExtra(sel, shareId) {
   const extra = { profile: null, projects: [], pitches: [], socials: [] };
+  // Thème couleur choisi par le propriétaire (voir applyTheme()) : permet
+  // à share.html d'afficher la carte avec les mêmes couleurs que dans
+  // l'éditeur, plutôt que toujours le thème noir/or par défaut.
+  extra.theme = localStorage.getItem('mdea_theme') || '';
 
   if (sel.profiles.length > 0) {
     const p = store.profiles.find(x => x.id === sel.profiles[0]);
@@ -3964,6 +4034,14 @@ async function buildCloudShareFlatFiles(sel) {
     const inv = store.invoices.find(i => i.id === id);
     if (!inv) continue;
     try {
+      // Facture "fichier importé" (import Word) : le PDF existe déjà tel
+      // quel, pas besoin (et pas possible) de le reconstruire depuis un
+      // rendu HTML structuré comme pour une facture classique.
+      if (inv.isFileInvoice) {
+        const blob = await getFileInvoiceBlob(inv);
+        files.push(new File([blob], inv.filename || `Facture_${inv.number || 'proforma'}.pdf`, { type: 'application/pdf' }));
+        continue;
+      }
       renderInvoicePreview(inv);
       const content = document.getElementById('invoicePreviewContent').innerHTML;
       const filename = `Facture_${(inv.number || 'proforma').replace(/[^\w-]/g,'_')}.pdf`;
@@ -4047,7 +4125,7 @@ async function activateNFC() {
       .catch(e => toast('Erreur NFC : ' + e.message, '⚠'));
   } else {
     navigator.clipboard?.writeText(gatewayUrl).then(() =>
-      toast(`✓ Contenu mis à jour (${total} élément(s)). Lien copié — à écrire UNE SEULE FOIS sur votre tag avec une appli comme "NFC Tools". Ensuite, changez juste votre sélection ici, le tag n'a plus jamais besoin d'être réécrit.`)
+      toast(`✓ Contenu mis à jour (${total} élément(s)).`)
     ).catch(() => toast(`${total} élément(s) sélectionnés — copiez le lien ci-dessus`));
   }
 }
@@ -4066,6 +4144,8 @@ async function shareViaLink() {
     const { files, text } = await buildCombinedShareFiles(sel);
 
     // Cas idéal : partage natif de TOUS les fichiers réels en un seul geste
+    // (WhatsApp reçoit alors chaque élément comme une pièce jointe séparée,
+    // jamais regroupé dans un fichier unique).
     if (files.length > 0 && navigator.canShare && navigator.canShare({ files })) {
       try {
         await navigator.share({ files, title: 'MDEA Business Card', text });
@@ -4073,7 +4153,36 @@ async function shareViaLink() {
         return;
       } catch (e) { /* utilisateur a annulé ou API refusée -> on retombe ci-dessous */ }
     }
-    // Fallback : téléchargement direct de chaque fichier réel généré
+    // Repli : certains navigateurs (notamment Safari iOS) ne savent pas
+    // partager PLUSIEURS fichiers en un seul geste, mais savent très bien
+    // partager UN SEUL fichier à la fois. On ouvre alors la fenêtre de
+    // partage successivement pour chaque élément — la personne en face
+    // reçoit quand même chaque élément séparément (pas de fichier groupé),
+    // juste en validant l'envoi plusieurs fois de suite au lieu d'une.
+    if (files.length > 0 && navigator.share) {
+      let shared = 0;
+      for (const f of files) {
+        try {
+          const canShareOne = !navigator.canShare || navigator.canShare({ files: [f] });
+          if (canShareOne) {
+            await navigator.share({ files: [f], title: f.name });
+            shared++;
+          } else {
+            downloadBlobFile(f, f.name);
+          }
+        } catch (e) {
+          // Fenêtre de partage fermée/annulée pour CE fichier -> on
+          // enchaîne quand même sur le suivant plutôt que d'abandonner
+          // tout le reste de la sélection.
+        }
+      }
+      toast(shared > 0
+        ? `✓ ${shared}/${files.length} élément(s) partagé(s) séparément`
+        : `📥 ${files.length} fichier(s) téléchargé(s)`);
+      return;
+    }
+    // Aucune API de partage de fichiers disponible (ex: navigateur de
+    // bureau) -> téléchargement direct de chaque fichier réel généré
     if (files.length > 0) {
       files.forEach(f => downloadBlobFile(f, f.name));
       toast(`📥 ${files.length} fichier(s) téléchargé(s) — le partage groupé de fichiers n'est pas supporté sur cet appareil`);
@@ -4147,6 +4256,11 @@ async function buildCombinedShareFiles(sel) {
     const inv = store.invoices.find(i => i.id === id);
     if (!inv) continue;
     try {
+      if (inv.isFileInvoice) {
+        const blob = await getFileInvoiceBlob(inv);
+        files.push(new File([blob], inv.filename || `Facture_${inv.number || 'proforma'}.pdf`, { type: 'application/pdf' }));
+        continue;
+      }
       renderInvoicePreview(inv);
       const content = document.getElementById('invoicePreviewContent').innerHTML;
       const filename = `Facture_${(inv.number || 'proforma').replace(/[^\w-]/g,'_')}.pdf`;
@@ -4579,14 +4693,98 @@ async function exportWordToPDF() {
   toast('⏳ Génération du PDF en cours…');
   try {
     const badge = document.getElementById('wordFileBadgeBar')?.querySelector('span')?.textContent || 'Facture';
-    const filename = (badge.replace(/\.[^/.]+$/,'') || 'facture') + '.pdf';
+    const baseName = badge.replace(/\.[^/.]+$/,'') || 'facture';
+    const filename = baseName + '.pdf';
     const blob = await generateRealPdfBlob(content, filename);
     store.lastWordPdfBlob = blob;
     store.lastWordPdfName = filename;
     downloadBlobFile(blob, filename);
-    toast('✓ PDF généré et téléchargé');
+    await saveWordPdfAsInvoice(blob, filename, baseName);
+    toast('✓ PDF généré, téléchargé et enregistré parmi vos factures');
   } catch (e) {
     toast('Erreur de conversion PDF : ' + e.message, '⚠');
+  }
+}
+
+// Enregistre le PDF généré depuis l'import Word comme une facture à part
+// entière dans store.invoices, pour qu'il apparaisse dans l'onglet
+// Factures au même titre qu'une facture créée via le formulaire structuré
+// — au lieu de rester un simple fichier téléchargé et oublié. Le fichier
+// est gardé en data: URL ici ; il sera externalisé vers Netlify Blobs à
+// la prochaine sauvegarde cloud (voir externalizeStoreMedia()).
+async function saveWordPdfAsInvoice(blob, filename, baseName) {
+  const dataUrl = await blobToDataURL(blob);
+  const invoice = {
+    id: Date.now().toString(),
+    status: 'draft',
+    isFileInvoice: true, // marque : facture "fichier importé", pas structurée
+    number: baseName,
+    toName: '',
+    date: new Date().toISOString().split('T')[0],
+    dueDate: '',
+    total: null,
+    currency: '',
+    filename,
+    file: dataUrl
+  };
+  store.invoices.push(invoice);
+  renderInvoices();
+  scheduleCloudSave();
+}
+
+// Récupère le PDF d'une facture "fichier importé" sous forme de Blob,
+// que le fichier soit encore en data: URL (pas encore synchronisé) ou
+// déjà externalisé vers Netlify Blobs (vraie URL /api/shared-file).
+async function getFileInvoiceBlob(inv) {
+  if (!inv.file) throw new Error('Fichier introuvable');
+  if (inv.file.startsWith('data:')) return dataURLtoBlobAsync(inv.file);
+  const res = await fetch(inv.file);
+  if (!res.ok) throw new Error(`http ${res.status}`);
+  return res.blob();
+}
+
+// "Aperçu" pour une facture "fichier importé" : ouvre directement le PDF
+// dans un nouvel onglet (contrairement aux factures structurées, il n'y a
+// pas de rendu HTML à afficher — juste le fichier tel qu'importé).
+async function viewFileInvoice(id) {
+  const inv = store.invoices.find(i => i.id === id);
+  if (!inv) return;
+  try {
+    const blob = await getFileInvoiceBlob(inv);
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) {
+    toast('Impossible d\'ouvrir ce document : ' + e.message, '⚠');
+  }
+}
+
+async function downloadFileInvoice(id) {
+  const inv = store.invoices.find(i => i.id === id);
+  if (!inv) return;
+  try {
+    const blob = await getFileInvoiceBlob(inv);
+    downloadBlobFile(blob, inv.filename || `${inv.number || 'facture'}.pdf`);
+  } catch (e) {
+    toast('Impossible de télécharger ce document : ' + e.message, '⚠');
+  }
+}
+
+async function shareFileInvoiceNFC(id) {
+  const inv = store.invoices.find(i => i.id === id);
+  if (!inv) return;
+  toast('⏳ Envoi de la facture vers le cloud…');
+  try {
+    const blob = await getFileInvoiceBlob(inv);
+    const filename = inv.filename || `${inv.number || 'facture'}.pdf`;
+    const url = await createCloudShareSingleFile(blob, filename, 'application/pdf', `Facture ${inv.number || ''}`.trim(), '');
+    if (navigator.share) {
+      navigator.share({ title: `Facture ${inv.number || ''}`.trim(), url }).then(() => toast('Facture partagée !')).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(url).then(() => toast('Lien facture copié — collez dans WhatsApp / email'));
+    }
+  } catch (e) {
+    toast('Erreur : ' + e.message, '⚠');
   }
 }
 
