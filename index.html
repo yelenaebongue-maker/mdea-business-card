@@ -2276,14 +2276,21 @@ async function externalizeStoreMedia() {
 
   for (const p of store.profiles) {
     if (p.photo) p.photo = await externalizeDataUrl(p.photo, bucket, `profile_${p.id}`);
+    // BUG CORRIGÉ : ce bloc était par erreur dans la boucle store.projects
+    // ci-dessous, qui ne contient jamais de champ partnerLogos (il
+    // n'existe que sur un PROFIL). Résultat : les logos partenaires
+    // restaient pour toujours en data: URL, et sanitizeForSave() (plus
+    // bas) les effaçait silencieusement à chaque sauvegarde pour ne pas
+    // dépasser la limite de taille — d'où leur disparition après un
+    // rechargement de page malgré un partage qui semblait fonctionner.
+    if (Array.isArray(p.partnerLogos)) {
+      for (let i = 0; i < p.partnerLogos.length; i++) {
+        p.partnerLogos[i] = await externalizeDataUrl(p.partnerLogos[i], bucket, `profile_${p.id}_logo${i}`);
+      }
+    }
   }
   for (const p of store.projects) {
     if (p.image) p.image = await externalizeDataUrl(p.image, bucket, `project_${p.id}`);
-    if (Array.isArray(p.partnerLogos)) {
-      for (let i = 0; i < p.partnerLogos.length; i++) {
-        p.partnerLogos[i] = await externalizeDataUrl(p.partnerLogos[i], bucket, `project_${p.id}_logo${i}`);
-      }
-    }
   }
   for (const p of store.pitches) {
     if (p.file) p.file = await externalizeDataUrl(p.file, bucket, `pitch_${p.id}${p.filename ? '.' + p.filename.split('.').pop() : ''}`);
@@ -3915,7 +3922,14 @@ function getShareSelection() {
 // PARTAGE (shareId), ou renvoie directement la valeur si c'est déjà une
 // vraie URL (cas normal : la photo/l'image/le fichier a déjà été
 // externalisé par externalizeStoreMedia() lors d'une sauvegarde cloud).
-async function resolveMediaUrl(shareId, value, hintName) {
+// displayName (optionnel) : nom "humain" à afficher au moment du
+// téléchargement (ex: "Pitch_Deck_MonEntreprise.pdf"), distinct du nom de
+// STOCKAGE (hintName, ex: "pitch_173..._id.pdf") qui doit rester unique et
+// prévisible pour éviter toute collision entre plusieurs fichiers d'un
+// même partage. Sans cette distinction, le navigateur du destinataire
+// pouvait afficher "pitch_1737482.pdf" dans la boîte de dialogue "Voulez-
+// vous télécharger ?" au lieu du vrai nom du document.
+async function resolveMediaUrl(shareId, value, hintName, displayName) {
   if (!value) return '';
   if (!value.startsWith('data:')) return value; // déjà hébergé ailleurs, on réutilise tel quel
   const blob = await dataURLtoBlobAsync(value);
@@ -3930,7 +3944,9 @@ async function resolveMediaUrl(shareId, value, hintName) {
   });
   if (!res.ok) throw new Error(`Échec de l'upload de "${name}" (http ${res.status})`);
   const result = await res.json();
-  return `/api/shared-file?id=${encodeURIComponent(shareId)}&name=${encodeURIComponent(result.name)}`;
+  let url = `/api/shared-file?id=${encodeURIComponent(shareId)}&name=${encodeURIComponent(result.name)}`;
+  if (displayName) url += `&dn=${encodeURIComponent(displayName)}`;
+  return url;
 }
 
 // Construit le contenu STRUCTURÉ (pas juste un résumé texte + fichiers en
@@ -3991,12 +4007,13 @@ async function buildCloudShareExtra(sel, shareId) {
   for (const id of sel.pitches) {
     const p = store.pitches.find(x => x.id === id);
     if (!p) continue;
+    const realName = p.filename || `${p.name || 'pitch'}.pdf`;
     extra.pitches.push({
       name: p.name || 'Pitch',
-      fileName: p.filename || `${p.name || 'pitch'}.pdf`,
+      fileName: realName,
       type: p.type || '',
       size: p.size || '',
-      fileUrl: await resolveMediaUrl(shareId, p.file, `pitch_${p.id}${p.filename ? '.' + p.filename.split('.').pop() : ''}`)
+      fileUrl: await resolveMediaUrl(shareId, p.file, `pitch_${p.id}${p.filename ? '.' + p.filename.split('.').pop() : ''}`, realName)
     });
   }
 
@@ -4644,8 +4661,23 @@ async function ensureHtml2Pdf() {
 async function generateRealPdfBlob(sourceHtml, filename) {
   await ensureHtml2Pdf();
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'background:#fff;color:#111;padding:28px 34px;width:780px;font-family:Montserrat,sans-serif;line-height:1.7';
-  wrapper.innerHTML = sourceHtml;
+  // Styles de base appliqués au document Word importé (via mammoth, qui
+  // ne conserve NI les bordures de tableau NI les largeurs de colonnes
+  // du fichier .docx original — c'est une limitation de cette conversion,
+  // pas un bug réparable ici). Ces règles redonnent un rendu propre et
+  // lisible : tableaux avec bordures et cellules bien cadrées, interligne
+  // resserré (l'ancien 1.7 créait des grands vides qui donnaient un
+  // aspect "désordonné"), images qui ne débordent jamais de la page, et
+  // des lignes de tableau qui ne sont jamais coupées entre deux pages.
+  wrapper.style.cssText = 'background:#fff;color:#111;padding:28px 34px;width:780px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.4';
+  wrapper.innerHTML = `<style>
+    table { border-collapse:collapse; width:100%; margin:10px 0; }
+    td, th { border:1px solid #ccc; padding:6px 8px; vertical-align:top; page-break-inside:avoid; }
+    tr { page-break-inside:avoid; }
+    img { max-width:100%; height:auto; }
+    p { margin:0 0 8px; }
+    h1, h2, h3 { margin:14px 0 8px; }
+  </style>${sourceHtml}`;
   document.body.appendChild(wrapper);
   const opts = {
     margin: 0,
@@ -4746,17 +4778,27 @@ async function getFileInvoiceBlob(inv) {
 // "Aperçu" pour une facture "fichier importé" : ouvre directement le PDF
 // dans un nouvel onglet (contrairement aux factures structurées, il n'y a
 // pas de rendu HTML à afficher — juste le fichier tel qu'importé).
-async function viewFileInvoice(id) {
+//
+// IMPORTANT : on ouvre l'onglet SYNCHRONE, tout de suite au clic, AVANT
+// tout `await` — sinon la plupart des navigateurs (Chrome, Safari...)
+// considèrent que ce n'est plus une action directe de l'utilisateur et
+// bloquent l'ouverture comme un pop-up indésirable (c'était le bug :
+// l'ancienne version ouvrait la fenêtre APRÈS avoir récupéré le fichier,
+// donc après un await, donc souvent bloquée silencieusement).
+function viewFileInvoice(id) {
   const inv = store.invoices.find(i => i.id === id);
   if (!inv) return;
-  try {
-    const blob = await getFileInvoiceBlob(inv);
+  const win = window.open('', '_blank');
+  if (win) win.document.write('<p style="font-family:sans-serif;padding:24px;color:#555">Chargement du document…</p>');
+  getFileInvoiceBlob(inv).then(blob => {
     const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    if (win && !win.closed) win.location.href = url;
+    else window.open(url, '_blank'); // popup déjà bloqué -> on retente normalement
     setTimeout(() => URL.revokeObjectURL(url), 60000);
-  } catch (e) {
+  }).catch(e => {
+    if (win && !win.closed) win.close();
     toast('Impossible d\'ouvrir ce document : ' + e.message, '⚠');
-  }
+  });
 }
 
 async function downloadFileInvoice(id) {

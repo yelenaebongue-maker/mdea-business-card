@@ -30,7 +30,16 @@ export default async (req) => {
   // retrouvent jamais forcées en téléchargement par erreur.
   const forceDownload = url.searchParams.get('dl') === '1';
   const disposition = forceDownload ? 'attachment' : 'inline';
-  const safeName = name.replace(/"/g, "'");
+  // "dn" (display name) : nom "humain" à afficher dans la boîte de
+  // dialogue "Voulez-vous télécharger ?", distinct du nom de stockage
+  // "name" utilisé pour retrouver le fichier. Sans ça, un pitch/document
+  // stocké en interne sous "pitch_173948..._id.pdf" s'affichait sous ce
+  // nom technique au téléchargement au lieu de son vrai nom d'origine
+  // (ex: "Pitch_Deck_MonEntreprise.pdf") — beaucoup de navigateurs
+  // mobiles utilisent le nom de l'en-tête Content-Disposition plutôt que
+  // l'attribut HTML "download" du lien cliqué.
+  const displayName = url.searchParams.get('dn') || name;
+  const safeName = displayName.replace(/"/g, "'");
 
   // Quand on force le téléchargement, on sert le fichier avec un type
   // générique (application/octet-stream) au lieu de son vrai type
