@@ -1223,6 +1223,63 @@ main {
   transition: var(--transition);
 }
 .word-editor-area:focus { border-color: var(--gold); background: rgba(201,169,110,0.02); }
+
+/* ------------------------------------------------------------------
+   DEUX MODES DE RENDU DU DOCUMENT IMPORTÉ
+   ------------------------------------------------------------------
+   1. MODE NATIF (.word-page-native) — le .docx a été rendu par
+      docx-preview, qui reproduit la MISE EN PAGE RÉELLE du fichier :
+      dimensions de page, marges, orientation, bordures de tableau,
+      largeurs de colonnes, polices, en-têtes/pieds de page. On ne force
+      donc AUCUN format ici : la page affichée est celle qu'a définie le
+      professionnel dans son propre modèle Word. C'est tout l'intérêt —
+      un client qui a déjà sa facture en portrait la garde en portrait,
+      un autre en paysage la garde en paysage.
+   2. MODE REPLI (.word-page-landscape) — fichier .txt/.rtf, ou .docx
+      illisible par docx-preview et récupéré par mammoth. Là, la mise en
+      page d'origine est perdue de toute façon, donc on impose une page
+      A4 paysage propre plutôt que de laisser un rendu à nu.
+   ------------------------------------------------------------------ */
+.word-page-format-label {
+  text-align: center; font-size: 0.58rem; font-weight: 600;
+  letter-spacing: 0.2em; text-transform: uppercase; color: var(--mid-gray);
+  margin-bottom: 10px;
+}
+.word-page-format-label b { color: var(--gold); font-weight: 600; }
+.word-page-wrap { display: flex; justify-content: center; }
+
+.word-page-landscape {
+  width: 100%; max-width: 960px;
+  aspect-ratio: 297 / 210;
+  overflow-y: auto;
+}
+@media (max-width: 768px) {
+  .word-page-landscape { aspect-ratio: unset; max-width: 100%; min-height: 420px; }
+}
+
+/* En mode natif, c'est docx-preview qui fixe les dimensions de chaque
+   page (élément <section>). On ne fait que fournir le conteneur
+   défilant et neutraliser nos propres paddings, qui viendraient sinon
+   s'ajouter aux marges réelles du document. */
+.word-page-native {
+  width: 100%; max-width: 100%;
+  max-height: 68vh; overflow: auto;
+  padding: 0 !important;
+  background: #6b6b6b !important; /* fond "bureau" autour des pages */
+  display: block;
+}
+.word-page-native .docx-wrapper {
+  background: transparent; padding: 20px 0; display: flex;
+  flex-direction: column; align-items: center; gap: 20px;
+}
+.word-page-native .docx-wrapper > section.docx {
+  background: #fff; box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+  margin: 0; flex-shrink: 0;
+}
+/* Le document importé arrive avec ses propres tailles en points ; on
+   évite juste qu'une image trop large ne déborde de sa page. */
+.word-page-native img { max-width: 100%; height: auto; }
+#wordStyleHolder { display: none; }
 .word-actions-bar {
   display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
   margin-top: 16px; padding-top: 16px;
@@ -1946,9 +2003,9 @@ main {
         <div style="margin-top:16px;padding:14px 16px;background:rgba(201,169,110,0.04);border:1px solid rgba(201,169,110,0.12);border-radius:var(--radius-sm)">
           <div style="font-size:0.6rem;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Comment ça marche</div>
           <div style="font-size:0.75rem;color:var(--mid-gray);line-height:1.8">
-            1. Importez votre facture Word (.docx) — le texte est extrait et affiché dans l'éditeur<br>
+            1. Importez votre facture Word (.docx) — le texte est extrait et affiché dans l'éditeur, en format A4 paysage<br>
             2. Modifiez le contenu directement dans l'éditeur riche<br>
-            3. Exportez en PDF ou partagez directement par lien / WhatsApp / email
+            3. Exportez en PDF (paysage) ou partagez directement par lien / WhatsApp / email
           </div>
         </div>
       </div>
@@ -1987,8 +2044,17 @@ main {
           <button class="word-toolbar-btn" onclick="wfmt('redo')">↪</button>
         </div>
 
-        <div class="word-editor-area" id="wordEditorArea" contenteditable="true"
-          style="background:#fff;color:#111;min-height:400px;border-radius:var(--radius-sm);padding:28px 32px;font-family:var(--font-body);line-height:1.9;"></div>
+        <!-- Reçoit les feuilles de style extraites du .docx par
+             docx-preview. Volontairement SÉPARÉ de la zone éditable :
+             si ces <style> vivaient à l'intérieur du contenteditable,
+             une frappe malheureuse de l'utilisateur pourrait les
+             supprimer et faire s'effondrer toute la mise en forme. -->
+        <div id="wordStyleHolder"></div>
+        <div class="word-page-format-label" id="wordFormatLabel"></div>
+        <div class="word-page-wrap">
+          <div class="word-editor-area word-page-landscape" id="wordEditorArea" contenteditable="true"
+            style="background:#fff;color:#111;border-radius:var(--radius-sm);padding:32px 40px;font-family:var(--font-body);line-height:1.7;box-shadow:0 20px 60px rgba(0,0,0,0.45);"></div>
+        </div>
 
         <div class="word-actions-bar">
           <button class="btn-primary" onclick="exportWordToPDF()">⬇ Convertir en vrai PDF</button>
@@ -3484,12 +3550,13 @@ async function shareInvoiceDirectly(id) {
     const filename = `Facture_${(inv.number || 'proforma').replace(/[^\w-]/g,'_')}.pdf`;
     const blob = await generateRealPdfBlob(content, filename);
     const url = await createCloudShareSingleFile(blob, filename, 'application/pdf', `Facture ${inv.number}`, `Facture pour ${inv.toName || ''}`);
+    const title = `Facture ${inv.number}`;
     if (navigator.share) {
-      navigator.share({ title: `Facture ${inv.number}`, text: `Facture pour ${inv.toName}`, url })
-        .then(() => toast('Facture partagée !')).catch(()=>{});
-    } else {
-      navigator.clipboard?.writeText(url).then(()=>toast('Lien facture copié — collez dans WhatsApp / email'));
+      try { await navigator.share({ title, text: `Facture pour ${inv.toName}`, url }); toast('Facture partagée !'); return; }
+      catch (e) { /* annulé ou indisponible → repli WhatsApp ci-dessous */ }
     }
+    openWhatsAppShare(url, title);
+    toast('Ouverture de WhatsApp…');
   } catch (e) {
     toast('Erreur : ' + e.message, '⚠');
   }
@@ -4496,6 +4563,17 @@ function generateId() {
   return Math.random().toString(36).substr(2,12).toUpperCase();
 }
 
+// Ouvre WhatsApp avec le lien/texte pré-rempli — fonctionne PARTOUT
+// (mobile : ouvre l'app WhatsApp via wa.me ; ordinateur : ouvre
+// WhatsApp Web dans un nouvel onglet). Remplace le simple copier-coller
+// dans le presse-papiers qui était le seul repli quand l'API Web Share
+// n'est pas disponible (le cas le plus fréquent sur ordinateur), ce qui
+// donnait l'impression que le bouton "n'envoyait rien".
+function openWhatsAppShare(url, title) {
+  const message = (title ? title + ' — ' : '') + url;
+  window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+}
+
 // QR Code (visual only)
 async function generateQR(text) {
   const grid = document.getElementById('qrGrid');
@@ -4586,6 +4664,25 @@ function wInsertTable() {
   document.execCommand('insertHTML', false, tbl);
 }
 
+// Mode de rendu du document actuellement chargé :
+//  'native' = rendu fidèle par docx-preview (mise en page du .docx
+//             préservée) ; 'fallback' = rendu dégradé (mammoth / texte
+//             brut), page A4 paysage imposée.
+// Cette valeur pilote ensuite le format du PDF exporté et de
+// l'impression — voir getWordExportContext().
+let wordRenderMode = 'fallback';
+
+async function ensureDocxPreview() {
+  // docx-preview a besoin de JSZip exposé en global AVANT son propre
+  // chargement (c'est lui qui décompresse le .docx).
+  if (typeof JSZip === 'undefined') {
+    await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');
+  }
+  if (typeof docx === 'undefined' || !docx.renderAsync) {
+    await loadScript('https://cdn.jsdelivr.net/npm/docx-preview@0.3.7/dist/docx-preview.min.js');
+  }
+}
+
 async function loadWordFile(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -4601,14 +4698,65 @@ async function loadWordFile(event) {
   }
 
   if (ext === 'docx' || ext === 'doc') {
-    if (typeof mammoth === 'undefined') {
-      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
-    }
-    const arrayBuffer = await file.arrayBuffer();
+    // ---------- TENTATIVE 1 : docx-preview (rendu FIDÈLE) ----------
+    // Contrairement à mammoth, docx-preview lit les vraies feuilles de
+    // style du document (styles.xml, numbering.xml, theme) et reproduit
+    // la mise en page : dimensions et orientation de page, marges,
+    // bordures et largeurs de colonnes des tableaux, polices, images
+    // positionnées, en-têtes et pieds de page. C'est ce qui permet à un
+    // professionnel d'importer SON modèle de facture existant et de le
+    // retrouver intact — l'argument produit central de cette
+    // fonctionnalité.
     try {
-      const result = await mammoth.convertToHtml({ arrayBuffer });
+      await ensureDocxPreview();
+      const body = document.getElementById('wordEditorArea');
+      const styleHolder = document.getElementById('wordStyleHolder');
+      styleHolder.innerHTML = '';
+      body.innerHTML = '';
+      showWordEditorShell();
+      await docx.renderAsync(file, body, styleHolder, {
+        className: 'docx',
+        inWrapper: true,
+        ignoreWidth: false,      // on GARDE la largeur de page d'origine
+        ignoreHeight: false,     // on GARDE la hauteur de page d'origine
+        ignoreFonts: false,
+        breakPages: true,
+        ignoreLastRenderedPageBreak: false, // respecte la pagination de Word
+        renderHeaders: true,
+        renderFooters: true,
+        renderFootnotes: true,
+        useBase64URL: true,      // images embarquées -> survivent à html2canvas
+        experimental: true       // meilleure gestion des tabulations
+      });
+      if (!body.textContent.trim() && !body.querySelector('img,table')) {
+        throw new Error('rendu vide');
+      }
+      setWordRenderMode('native');
+      toast('✓ Document chargé avec sa mise en forme d\'origine');
+      return;
+    } catch (e) {
+      console.warn('docx-preview a échoué, repli sur mammoth :', e);
+    }
+
+    // ---------- TENTATIVE 2 : mammoth (rendu DÉGRADÉ) ----------
+    // Filet de sécurité : .doc ancien format, fichier corrompu, ou
+    // structure exotique que docx-preview refuse. On récupère au moins
+    // le contenu, en prévenant honnêtement que la mise en forme
+    // d'origine n'a pas pu être conservée.
+    try {
+      if (typeof mammoth === 'undefined') {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
+      }
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.convertToHtml(
+        { arrayBuffer },
+        { convertImage: mammoth.images.imgElement(img =>
+            img.read('base64').then(b64 => ({ src: 'data:' + img.contentType + ';base64,' + b64 }))
+          ) }
+      );
       showWordEditor(result.value || '<p>Document importé — commencez à modifier.</p>');
-    } catch(e) {
+      toast('⚠ Mise en forme d\'origine non conservée pour ce fichier', '⚠');
+    } catch(e2) {
       showWordEditor('<p style="color:#888">Impossible de lire ce fichier. Réenregistrez-le en .docx depuis Word puis réessayez.</p>');
     }
     return;
@@ -4625,10 +4773,75 @@ function loadScript(src) {
   });
 }
 
-function showWordEditor(html) {
+// Affiche l'étape "éditeur" sans toucher au contenu — utilisé par le
+// rendu docx-preview, qui a besoin que le conteneur soit VISIBLE et
+// dimensionné au moment du rendu (il mesure la page pour la paginer ;
+// un conteneur à display:none produirait des dimensions nulles).
+function showWordEditorShell() {
   document.getElementById('wordImportStep1').style.display = 'none';
   document.getElementById('wordImportStep2').style.display = 'block';
+}
+
+// Bascule l'éditeur entre rendu natif fidèle et rendu dégradé, et met à
+// jour l'étiquette de format affichée au-dessus de la page.
+function setWordRenderMode(mode) {
+  wordRenderMode = mode;
+  const area = document.getElementById('wordEditorArea');
+  const label = document.getElementById('wordFormatLabel');
+  area.classList.toggle('word-page-native', mode === 'native');
+  area.classList.toggle('word-page-landscape', mode !== 'native');
+  if (mode === 'native') {
+    const o = detectWordOrientation();
+    const pages = area.querySelectorAll('section.docx').length || 1;
+    label.innerHTML = '📄 <b>Mise en forme d\'origine conservée</b> · '
+      + (o === 'landscape' ? 'Paysage' : 'Portrait') + ' · '
+      + pages + ' page' + (pages > 1 ? 's' : '');
+  } else {
+    label.innerHTML = '📐 Format A4 — Paysage · <b>mise en forme d\'origine non conservée</b>';
+  }
+}
+
+// Déduit l'orientation réelle du document à partir de la première page
+// rendue par docx-preview (qui lui applique les dimensions exactes
+// définies dans le .docx). Sert à générer un PDF au MÊME format que le
+// fichier importé, au lieu d'imposer un format arbitraire.
+function detectWordOrientation() {
+  const page = document.querySelector('#wordEditorArea section.docx');
+  if (!page) return 'landscape';
+  const r = page.getBoundingClientRect();
+  if (!r.width || !r.height) return 'portrait';
+  return r.width > r.height ? 'landscape' : 'portrait';
+}
+
+// Largeur en pixels CSS de la page rendue — reprise telle quelle pour le
+// rendu PDF, afin que html2canvas capture exactement ce que l'écran
+// affiche (aucun reflow entre l'aperçu et le fichier final).
+function detectWordPageWidth() {
+  const page = document.querySelector('#wordEditorArea section.docx');
+  const w = page ? page.getBoundingClientRect().width : 0;
+  return w > 100 ? Math.round(w) : 1122; // 1122px ≈ A4 paysage à 96dpi
+}
+
+// Rassemble ce qu'il faut pour exporter/imprimer : les styles extraits du
+// .docx (indispensables en mode natif — sans eux le HTML repart nu) et
+// le contenu édité.
+function getWordExportContext() {
+  const area = document.getElementById('wordEditorArea');
+  const styles = document.getElementById('wordStyleHolder')?.innerHTML || '';
+  return {
+    native: wordRenderMode === 'native',
+    styles,
+    content: area?.innerHTML?.trim() || '',
+    orientation: wordRenderMode === 'native' ? detectWordOrientation() : 'landscape',
+    pageWidth: wordRenderMode === 'native' ? detectWordPageWidth() : 1122
+  };
+}
+
+function showWordEditor(html) {
+  showWordEditorShell();
+  document.getElementById('wordStyleHolder').innerHTML = '';
   document.getElementById('wordEditorArea').innerHTML = html;
+  setWordRenderMode('fallback');
   toast('Document chargé — modifiez librement');
 }
 
@@ -4636,13 +4849,42 @@ function resetWordImport() {
   document.getElementById('wordImportStep1').style.display = 'block';
   document.getElementById('wordImportStep2').style.display = 'none';
   document.getElementById('wordEditorArea').innerHTML = '';
+  document.getElementById('wordStyleHolder').innerHTML = '';
   document.getElementById('wordFileBadgeBar').innerHTML = '';
+  store.lastWordPdfBlob = null;
+  store.lastWordPdfName = null;
+  setWordRenderMode('fallback');
 }
 
 function printWordDoc() {
-  const content = document.getElementById('wordEditorArea').innerHTML;
+  const ctx = getWordExportContext();
+  if (!ctx.content) { toast('Aucun document Word chargé','⚠'); return; }
   const w = window.open('','_blank');
-  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture Officielle</title><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:\'Montserrat\',sans-serif;padding:32px 40px;color:#111;line-height:1.7}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ddd;padding:8px 12px}th{background:#f5f4f0;font-weight:700}</style></head><body>' + content + '</body></html>');
+  if (!w) { toast('Le navigateur a bloqué l\'impression — autorisez les pop-up', '⚠'); return; }
+
+  // Mode natif : on réinjecte les styles du .docx et on laisse le
+  // document imposer ses propres marges (déjà présentes dans chaque
+  // <section>). @page passe en marge zéro pour ne pas les doubler.
+  // Mode dégradé : mise en page A4 paysage générique, comme avant.
+  const head = ctx.native
+    ? ctx.styles + `<style>
+        @page { size:A4 ${ctx.orientation}; margin:0 }
+        *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
+        .docx-wrapper{background:transparent!important;padding:0!important;display:block!important;gap:0!important}
+        .docx-wrapper > section.docx{box-shadow:none!important;margin:0!important}
+        .docx-wrapper > section.docx + section.docx{page-break-before:always}
+        tr,td,th{page-break-inside:avoid}
+      </style>`
+    : `<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"><style>
+        @page{size:A4 landscape;margin:15mm 18mm}
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Montserrat',sans-serif;padding:32px 40px;color:#111;line-height:1.7}
+        table{width:100%;border-collapse:collapse}
+        td,th{border:1px solid #ddd;padding:8px 12px}
+        th{background:#f5f4f0;font-weight:700}
+      </style>`;
+
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture Officielle</title>' + head + '</head><body>' + ctx.content + '</body></html>');
   w.document.close();
   setTimeout(() => w.print(), 800);
 }
@@ -4657,35 +4899,70 @@ async function ensureHtml2Pdf() {
   }
 }
 
-// Génère un vrai Blob PDF à partir d'un élément HTML
-async function generateRealPdfBlob(sourceHtml, filename) {
+// Génère un vrai Blob PDF à partir d'un élément HTML.
+//
+// `opt` transmet le contexte d'un document Word importé :
+//   - native      : true si le HTML provient de docx-preview. Dans ce
+//                   cas on N'INJECTE PAS nos styles génériques — ils
+//                   écraseraient la mise en forme authentique du .docx,
+//                   ce qui était précisément la cause du rendu "gâté".
+//   - styles      : les <style> extraits du .docx, à réinjecter tels
+//                   quels (sans eux le contenu repart totalement nu).
+//   - orientation : déduite du document réel au lieu d'être imposée.
+//   - pageWidth   : largeur en px de la page telle qu'affichée, pour que
+//                   le PDF soit le reflet exact de l'aperçu à l'écran.
+// Sans `opt` (factures structurées, pitchs...), le comportement reste
+// celui d'avant : styles génériques + A4 paysage.
+async function generateRealPdfBlob(sourceHtml, filename, opt = {}) {
   await ensureHtml2Pdf();
+  const native      = !!opt.native;
+  const orientation = opt.orientation || 'landscape';
+  const pageWidth   = opt.pageWidth || (orientation === 'landscape' ? 1122 : 794);
+  const docStyles   = opt.styles || '';
+
   const wrapper = document.createElement('div');
-  // Styles de base appliqués au document Word importé (via mammoth, qui
-  // ne conserve NI les bordures de tableau NI les largeurs de colonnes
-  // du fichier .docx original — c'est une limitation de cette conversion,
-  // pas un bug réparable ici). Ces règles redonnent un rendu propre et
-  // lisible : tableaux avec bordures et cellules bien cadrées, interligne
-  // resserré (l'ancien 1.7 créait des grands vides qui donnaient un
-  // aspect "désordonné"), images qui ne débordent jamais de la page, et
-  // des lignes de tableau qui ne sont jamais coupées entre deux pages.
-  wrapper.style.cssText = 'background:#fff;color:#111;padding:28px 34px;width:780px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.4';
-  wrapper.innerHTML = `<style>
+  // Mode natif : aucune marge ni police imposée — docx-preview a déjà
+  // appliqué les marges réelles du document à chaque <section>, tout
+  // padding ajouté ici viendrait s'y empiler.
+  // Mode dégradé : styles de base pour rendre lisible un contenu dont la
+  // mise en forme d'origine a de toute façon été perdue (1122px ≈ la
+  // largeur réelle d'une A4 paysage à 96dpi).
+  wrapper.style.cssText = native
+    ? `background:#fff;color:#111;padding:0;width:${pageWidth}px`
+    : `background:#fff;color:#111;padding:30px 40px;width:${pageWidth}px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.4`;
+
+  const genericStyles = native ? '' : `<style>
     table { border-collapse:collapse; width:100%; margin:10px 0; }
     td, th { border:1px solid #ccc; padding:6px 8px; vertical-align:top; page-break-inside:avoid; }
     tr { page-break-inside:avoid; }
     img { max-width:100%; height:auto; }
     p { margin:0 0 8px; }
     h1, h2, h3 { margin:14px 0 8px; }
-  </style>${sourceHtml}`;
+  </style>`;
+
+  // En mode natif : on neutralise l'ombre portée et le fond "bureau"
+  // gris ajoutés pour le confort d'affichage (ils se retrouveraient
+  // imprimés dans le PDF), et on force une coupure de page entre deux
+  // sections Word pour respecter la pagination d'origine.
+  const printFixes = native ? `<style>
+    .docx-wrapper { background:transparent !important; padding:0 !important; display:block !important; gap:0 !important; }
+    .docx-wrapper > section.docx { box-shadow:none !important; margin:0 !important; }
+    .docx-wrapper > section.docx + section.docx { page-break-before:always; }
+    tr, td, th { page-break-inside:avoid; }
+  </style>` : '';
+
+  wrapper.innerHTML = docStyles + genericStyles + printFixes + sourceHtml;
   document.body.appendChild(wrapper);
   const opts = {
     margin: 0,
     filename,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak: { mode: ['avoid-all','css','legacy'] }
+    jsPDF: { unit: 'mm', format: 'a4', orientation },
+    // 'avoid-all' retiré en mode natif : il ajoute ses propres coupures
+    // automatiques qui entrent en conflit avec la pagination réelle du
+    // document Word déjà rendue par docx-preview.
+    pagebreak: { mode: native ? ['css','legacy'] : ['avoid-all','css','legacy'] }
   };
   try {
     const blob = await html2pdf().set(opts).from(wrapper).outputPdf('blob');
@@ -4720,14 +4997,14 @@ async function shareOrDownloadFile(blob, filename, mimeType, shareTitle, shareTe
 }
 
 async function exportWordToPDF() {
-  const content = document.getElementById('wordEditorArea')?.innerHTML?.trim();
-  if (!content || content.length < 5) { toast('Aucun document Word chargé','⚠'); return; }
+  const ctx = getWordExportContext();
+  if (!ctx.content || ctx.content.length < 5) { toast('Aucun document Word chargé','⚠'); return; }
   toast('⏳ Génération du PDF en cours…');
   try {
     const badge = document.getElementById('wordFileBadgeBar')?.querySelector('span')?.textContent || 'Facture';
     const baseName = badge.replace(/\.[^/.]+$/,'') || 'facture';
     const filename = baseName + '.pdf';
-    const blob = await generateRealPdfBlob(content, filename);
+    const blob = await generateRealPdfBlob(ctx.content, filename, ctx);
     store.lastWordPdfBlob = blob;
     store.lastWordPdfName = filename;
     downloadBlobFile(blob, filename);
@@ -4788,12 +5065,30 @@ async function getFileInvoiceBlob(inv) {
 function viewFileInvoice(id) {
   const inv = store.invoices.find(i => i.id === id);
   if (!inv) return;
+  if (!inv.file) { toast('Fichier introuvable pour cette facture', '⚠'); return; }
+  // Fichier déjà hébergé (vraie URL /api/shared-file, pas data:) : on
+  // l'ouvre DIRECTEMENT et de façon SYNCHRONE, sans passer par un
+  // fetch()+Blob au préalable. C'était le bug — l'ancienne version
+  // attendait la réponse réseau avant d'appeler window.open(), ce qui
+  // n'est plus considéré comme un geste utilisateur direct par la
+  // plupart des navigateurs et se faisait donc bloquer silencieusement
+  // comme un pop-up indésirable (surtout une fois la facture synchronisée
+  // sur le cloud, cas le plus fréquent).
+  if (!inv.file.startsWith('data:')) {
+    const win = window.open(inv.file, '_blank');
+    if (!win) toast('Le navigateur a bloqué l\'ouverture — autorisez les pop-up pour ce site', '⚠');
+    return;
+  }
+  // Fichier encore en data: URL locale (pas encore synchronisé) : on doit
+  // d'abord le convertir en Blob avant de pouvoir l'afficher. On ouvre la
+  // fenêtre tout de suite (geste utilisateur direct) et on y navigue une
+  // fois le Blob prêt.
   const win = window.open('', '_blank');
   if (win) win.document.write('<p style="font-family:sans-serif;padding:24px;color:#555">Chargement du document…</p>');
-  getFileInvoiceBlob(inv).then(blob => {
+  dataURLtoBlobAsync(inv.file).then(blob => {
     const url = URL.createObjectURL(blob);
     if (win && !win.closed) win.location.href = url;
-    else window.open(url, '_blank'); // popup déjà bloqué -> on retente normalement
+    else toast('Le navigateur a bloqué l\'ouverture — autorisez les pop-up pour ce site', '⚠');
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   }).catch(e => {
     if (win && !win.closed) win.close();
@@ -4820,25 +5115,31 @@ async function shareFileInvoiceNFC(id) {
     const blob = await getFileInvoiceBlob(inv);
     const filename = inv.filename || `${inv.number || 'facture'}.pdf`;
     const url = await createCloudShareSingleFile(blob, filename, 'application/pdf', `Facture ${inv.number || ''}`.trim(), '');
+    const title = `Facture ${inv.number || ''}`.trim();
+    // Sur mobile avec l'API Web Share : passe par le sélecteur natif
+    // (WhatsApp y figure directement). Sinon (ordinateur, la majorité des
+    // cas) : ouverture DIRECTE de WhatsApp avec le lien pré-rempli, au
+    // lieu de se contenter d'une copie silencieuse dans le presse-papiers.
     if (navigator.share) {
-      navigator.share({ title: `Facture ${inv.number || ''}`.trim(), url }).then(() => toast('Facture partagée !')).catch(() => {});
-    } else {
-      navigator.clipboard?.writeText(url).then(() => toast('Lien facture copié — collez dans WhatsApp / email'));
+      try { await navigator.share({ title, url }); toast('Facture partagée !'); return; }
+      catch (e) { /* annulé ou indisponible → repli WhatsApp ci-dessous */ }
     }
+    openWhatsAppShare(url, title);
+    toast('Ouverture de WhatsApp…');
   } catch (e) {
     toast('Erreur : ' + e.message, '⚠');
   }
 }
 
 async function shareWordDocFile() {
-  const content = document.getElementById('wordEditorArea')?.innerHTML?.trim();
-  if (!content || content.length < 5) { toast('Aucun document Word chargé','⚠'); return; }
+  const ctx = getWordExportContext();
+  if (!ctx.content || ctx.content.length < 5) { toast('Aucun document Word chargé','⚠'); return; }
   toast('⏳ Préparation du PDF à partager…');
   try {
     let blob = store.lastWordPdfBlob;
     const filename = store.lastWordPdfName || 'facture.pdf';
     if (!blob) {
-      blob = await generateRealPdfBlob(content, filename);
+      blob = await generateRealPdfBlob(ctx.content, filename, ctx);
       store.lastWordPdfBlob = blob;
       store.lastWordPdfName = filename;
     }
@@ -4849,15 +5150,15 @@ async function shareWordDocFile() {
 }
 
 async function shareWordDocNFC() {
-  const content = document.getElementById('wordEditorArea')?.innerHTML?.trim();
-  if (!content || content.length < 5) { toast('Aucun document Word chargé','⚠'); return; }
+  const ctx = getWordExportContext();
+  if (!ctx.content || ctx.content.length < 5) { toast('Aucun document Word chargé','⚠'); return; }
   toast('⏳ Envoi vers le cloud…');
   let url;
   try {
     let blob = store.lastWordPdfBlob;
     const filename = store.lastWordPdfName || 'Facture_Word.pdf';
     if (!blob) {
-      blob = await generateRealPdfBlob(content, filename);
+      blob = await generateRealPdfBlob(ctx.content, filename, ctx);
       store.lastWordPdfBlob = blob;
       store.lastWordPdfName = filename;
     }
@@ -4866,25 +5167,25 @@ async function shareWordDocNFC() {
     toast('Erreur d\'envoi : ' + e.message, '⚠');
     return;
   }
+  const fallbackShare = () => {
+    if (navigator.share) {
+      const text = document.getElementById('wordEditorArea').innerText.substring(0,300);
+      navigator.share({ title: 'Facture Officielle', text: text+'…', url }).then(()=>toast('Partagé !')).catch(()=>{
+        openWhatsAppShare(url, 'Facture Officielle');
+        toast('Ouverture de WhatsApp…');
+      });
+    } else {
+      openWhatsAppShare(url, 'Facture Officielle');
+      toast('Ouverture de WhatsApp…');
+    }
+  };
   if ('NDEFReader' in window) {
     const ndef = new NDEFReader();
     ndef.write({ records: [{ recordType: 'url', data: url }] })
       .then(() => toast('⬡ Document Word programmé sur la NFC Card'))
-      .catch(() => {
-        if (navigator.share) {
-          const text = document.getElementById('wordEditorArea').innerText.substring(0,300);
-          navigator.share({ title: 'Facture Officielle', text: text+'…', url }).then(()=>toast('Partagé !')).catch(()=>{});
-        } else {
-          navigator.clipboard?.writeText(url).then(()=>toast('Lien copié — NFC indisponible sur cet appareil'));
-        }
-      });
+      .catch(fallbackShare);
   } else {
-    if (navigator.share) {
-      const text = document.getElementById('wordEditorArea').innerText.substring(0,300);
-      navigator.share({ title: 'Facture Officielle', text: text+'…', url }).then(()=>toast('Partagé !')).catch(()=>{});
-    } else {
-      navigator.clipboard?.writeText(url).then(()=>toast('Lien copié !'));
-    }
+    fallbackShare();
   }
 }
 
