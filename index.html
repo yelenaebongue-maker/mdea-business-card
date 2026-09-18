@@ -1535,7 +1535,6 @@ main {
         <h2 class="page-title">Factures <em>Proforma</em></h2>
       </div>
       <div style="display:flex;gap:10px;align-items:center">
-        <button class="btn-outline" onclick="openWordImportModal()">📄 Importer Word</button>
         <button class="btn-primary" onclick="openInvoiceModal()">+ Nouvelle Facture</button>
       </div>
     </div>
@@ -2199,11 +2198,14 @@ main {
 
         <div class="share-hint-bar">
           <span style="color:var(--gold)">📄</span>
-          Convertissez votre document Word importé en PDF, puis partagez-le via votre carte NFC.
+          Convertissez vos factures proforma en PDF, puis partagez-les via votre carte NFC.
         </div>
 
-        <!-- Word importé -->
-        <div class="share-section-block">
+        <!-- Import Word retiré de cette édition (voir openWordImportModal
+             désactivé plus bas) — bloc caché plutôt que supprimé pour ne
+             pas casser renderShareModal(), qui écrit dedans sans
+             vérifier son existence. -->
+        <div class="share-section-block" style="display:none">
           <div class="share-section-head">
             <div class="share-section-icon">📝</div>
             <div>
@@ -2213,7 +2215,7 @@ main {
           </div>
           <div id="pdfWordDocStatus" style="padding:14px 0">
             <div style="font-size:0.75rem;color:var(--mid-gray);padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:var(--radius-sm)">
-              Aucun document Word importé. Allez dans <strong style="color:var(--gold)">Factures → Importer Word</strong> pour charger votre document.
+              Aucun document Word importé.
             </div>
           </div>
         </div>
@@ -3850,7 +3852,7 @@ function openShareModal() {
     </div>`;
   } else {
     pdfWordEl.innerHTML = `<div style="font-size:0.75rem;color:var(--mid-gray);padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:var(--radius-sm)">
-      Aucun document Word importé. Allez dans <strong style="color:var(--gold)">Factures → Importer Word</strong> pour charger votre document.
+      Aucun document Word importé.
     </div>`;
   }
 
@@ -4639,7 +4641,15 @@ document.addEventListener('click', e => {
 // ============================================================
 // WORD IMPORT & RICH EDITOR
 // ============================================================
-function openWordImportModal() { openModal('wordImportModal'); }
+// Import Word RETIRÉ de cette édition (fiabilité insuffisante sur
+// l'éventail réel des modèles clients — voir échanges du 18/09/2026).
+// Le point d'entrée principal (bouton "Importer Word") a été retiré de
+// l'onglet Factures ; cette fonction reste en garde-fou au cas où un
+// appel resterait accroché quelque part, plutôt que de planter en
+// silence sur un id de modale introuvable.
+function openWordImportModal() {
+  toast('L\'import de facture Word n\'est pas encore disponible dans cette version', '⚠');
+}
 
 function wfmt(cmd, val) {
   document.getElementById('wordEditorArea').focus();
