@@ -4152,14 +4152,22 @@ async function buildCloudShareFlatFiles(sel) {
 
 async function activateNFC() {
   const sel = getShareSelection();
-  const total = sel.profiles.length + sel.projects.length + sel.socials.length + sel.pitches.length + sel.invoices.length + (sel.wordDoc?1:0);
-  if (total === 0) { toast('Sélectionnez au moins un élément à partager','⚠'); return; }
 
-  // Mode "numéro seul" : on écrit un vrai enregistrement vCard sur le tag NFC
-  // (au lieu d'un simple lien), lisible directement par le téléphone qui tape la carte.
-  if (sel.phoneOnly && sel.profiles.length > 0) {
-    const p = store.profiles.find(x => x.id === sel.profiles[0]);
-    if (!p || !p.phone) { toast('Ce profil n\'a pas de numéro renseigné','⚠'); return; }
+  // Mode "numéro seul" : traité EN PREMIER, avant la vérification
+  // générale de sélection ci-dessous. Auparavant, cocher uniquement
+  // "numéro seul" sans EN PLUS cliquer sur une carte de profil dans la
+  // liste tombait sur le message générique "Sélectionnez au moins un
+  // élément" — qui ne dit rien sur le vrai problème. On reproduit aussi
+  // le repli du bouton "Envoyer instantanément" : si aucun profil n'est
+  // explicitement coché, on utilise le profil actif par défaut, au lieu
+  // d'exiger une action de sélection en plus de la case à cocher.
+  if (sel.phoneOnly) {
+    const selEl = document.querySelector('#shareProfileList .share-check-item.selected');
+    const p = selEl
+      ? store.profiles.find(x => x.id === selEl.dataset.id)
+      : store.profiles.find(x => x.active) || store.profiles[0];
+    if (!p) { toast('Aucun profil disponible','⚠'); return; }
+    if (!p.phone) { toast('Ce profil n\'a pas de numéro renseigné','⚠'); return; }
     const vcard = buildVCard(p, true);
     if ('NDEFReader' in window) {
       const ndef = new NDEFReader();
@@ -4175,6 +4183,9 @@ async function activateNFC() {
     }
     return;
   }
+
+  const total = sel.profiles.length + sel.projects.length + sel.socials.length + sel.pitches.length + sel.invoices.length + (sel.wordDoc?1:0);
+  if (total === 0) { toast('Sélectionnez au moins un élément à partager','⚠'); return; }
 
   // On écrit la passerelle /api/card UNE SEULE FOIS sur la carte : sa
   // propre URL ne change jamais. Ce qui change à chaque reprogrammation,
@@ -4218,8 +4229,10 @@ async function activateNFC() {
 
 async function shareViaLink() {
   const sel = getShareSelection();
-  // Mode "numéro seul" : on partage directement le vrai fichier vCard plutôt qu'un lien
-  if (sel.phoneOnly && sel.profiles.length > 0) {
+  // Mode "numéro seul" : on partage directement le vrai fichier vCard
+  // plutôt qu'un lien. quickShareSelectedProfilePhone() a déjà son propre
+  // repli sur le profil actif si aucun n'est explicitement coché.
+  if (sel.phoneOnly) {
     return quickShareSelectedProfilePhone();
   }
   const total = sel.profiles.length + sel.projects.length + sel.socials.length + sel.pitches.length + sel.invoices.length + (sel.wordDoc?1:0);
