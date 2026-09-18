@@ -4721,7 +4721,17 @@ async function loadWordFile(event) {
         ignoreHeight: false,     // on GARDE la hauteur de page d'origine
         ignoreFonts: false,
         breakPages: true,
-        ignoreLastRenderedPageBreak: false, // respecte la pagination de Word
+        // true (= comportement par défaut de la bibliothèque) : IGNORE les
+        // marqueurs <w:lastRenderedPageBreak/> laissés par Word. Ce ne sont
+        // PAS des sauts de page volontaires : c'est un souvenir mis en
+        // cache par Word au moment de sa dernière impression/ouverture,
+        // avec son imprimante et son moteur de rendu à lui. Les respecter
+        // ici provoquait le bug "la facture se divise en deux pages" —
+        // docx-preview recréait un découpage périmé qui n'a plus rien à
+        // voir avec le rendu réel dans le navigateur. Seuls les VRAIS
+        // sauts de page (<w:br type="page"/>, insérés volontairement) et
+        // les changements de format de page restent respectés.
+        ignoreLastRenderedPageBreak: true,
         renderHeaders: true,
         renderFooters: true,
         renderFootnotes: true,
@@ -4791,7 +4801,7 @@ function setWordRenderMode(mode) {
   area.classList.toggle('word-page-native', mode === 'native');
   area.classList.toggle('word-page-landscape', mode !== 'native');
   if (mode === 'native') {
-    const o = detectWordOrientation();
+    const o = detectWordPageSize().orientation;
     const pages = area.querySelectorAll('section.docx').length || 1;
     label.innerHTML = '📄 <b>Mise en forme d\'origine conservée</b> · '
       + (o === 'landscape' ? 'Paysage' : 'Portrait') + ' · '
@@ -4801,39 +4811,48 @@ function setWordRenderMode(mode) {
   }
 }
 
-// Déduit l'orientation réelle du document à partir de la première page
-// rendue par docx-preview (qui lui applique les dimensions exactes
-// définies dans le .docx). Sert à générer un PDF au MÊME format que le
-// fichier importé, au lieu d'imposer un format arbitraire.
-function detectWordOrientation() {
+// Dimensions RÉELLES de la page rendue par docx-preview (celle-ci
+// applique les dimensions exactes définies dans le .docx — A4, Letter,
+// format personnalisé, peu importe). On les récupère en pixels CSS,
+// puis on les convertit en millimètres pour les donner telles quelles
+// à jsPDF, AU LIEU d'imposer 'a4'. C'est ce deuxième forçage qui pouvait
+// encore diviser une facture Letter/format personnalisé sur deux pages
+// même après la correction du bug des sauts de page en cache : le
+// contenu, rendu plus grand ou plus petit que l'A4 imposé, débordait
+// de la page PDF et se retrouvait coupé.
+function detectWordPageSize() {
   const page = document.querySelector('#wordEditorArea section.docx');
-  if (!page) return 'landscape';
-  const r = page.getBoundingClientRect();
-  if (!r.width || !r.height) return 'portrait';
-  return r.width > r.height ? 'landscape' : 'portrait';
-}
-
-// Largeur en pixels CSS de la page rendue — reprise telle quelle pour le
-// rendu PDF, afin que html2canvas capture exactement ce que l'écran
-// affiche (aucun reflow entre l'aperçu et le fichier final).
-function detectWordPageWidth() {
-  const page = document.querySelector('#wordEditorArea section.docx');
-  const w = page ? page.getBoundingClientRect().width : 0;
-  return w > 100 ? Math.round(w) : 1122; // 1122px ≈ A4 paysage à 96dpi
+  const r = page ? page.getBoundingClientRect() : null;
+  const PX_TO_MM = 25.4 / 96; // 96px = 1 pouce = 25.4mm
+  if (!r || !r.width || !r.height) {
+    return { widthPx: 1122, heightPx: 794, widthMM: 297, heightMM: 210, orientation: 'landscape' };
+  }
+  return {
+    widthPx: Math.round(r.width),
+    heightPx: Math.round(r.height),
+    widthMM: +(r.width * PX_TO_MM).toFixed(1),
+    heightMM: +(r.height * PX_TO_MM).toFixed(1),
+    orientation: r.width > r.height ? 'landscape' : 'portrait'
+  };
 }
 
 // Rassemble ce qu'il faut pour exporter/imprimer : les styles extraits du
-// .docx (indispensables en mode natif — sans eux le HTML repart nu) et
-// le contenu édité.
+// .docx (indispensables en mode natif — sans eux le HTML repart nu), le
+// contenu édité, et le VRAI format de page détecté (plus de format
+// imposé arbitrairement).
 function getWordExportContext() {
   const area = document.getElementById('wordEditorArea');
   const styles = document.getElementById('wordStyleHolder')?.innerHTML || '';
+  const size = wordRenderMode === 'native'
+    ? detectWordPageSize()
+    : { widthPx: 1122, heightPx: 794, widthMM: 297, heightMM: 210, orientation: 'landscape' };
   return {
     native: wordRenderMode === 'native',
     styles,
     content: area?.innerHTML?.trim() || '',
-    orientation: wordRenderMode === 'native' ? detectWordOrientation() : 'landscape',
-    pageWidth: wordRenderMode === 'native' ? detectWordPageWidth() : 1122
+    orientation: size.orientation,
+    pageWidth: size.widthPx,
+    pageSizeMM: [size.widthMM, size.heightMM]
   };
 }
 
@@ -4868,7 +4887,7 @@ function printWordDoc() {
   // Mode dégradé : mise en page A4 paysage générique, comme avant.
   const head = ctx.native
     ? ctx.styles + `<style>
-        @page { size:A4 ${ctx.orientation}; margin:0 }
+        @page { size:${ctx.pageSizeMM[0]}mm ${ctx.pageSizeMM[1]}mm; margin:0 }
         *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
         .docx-wrapper{background:transparent!important;padding:0!important;display:block!important;gap:0!important}
         .docx-wrapper > section.docx{box-shadow:none!important;margin:0!important}
@@ -4919,6 +4938,10 @@ async function generateRealPdfBlob(sourceHtml, filename, opt = {}) {
   const orientation = opt.orientation || 'landscape';
   const pageWidth   = opt.pageWidth || (orientation === 'landscape' ? 1122 : 794);
   const docStyles   = opt.styles || '';
+  // Format RÉEL de la page (en mm), détecté sur le document lui-même —
+  // remplace le 'a4' imposé qui pouvait faire déborder (et donc diviser
+  // sur deux pages) un document Letter ou à marges personnalisées.
+  const pageFormat  = opt.pageSizeMM || (orientation === 'landscape' ? [297,210] : [210,297]);
 
   const wrapper = document.createElement('div');
   // Mode natif : aucune marge ni police imposée — docx-preview a déjà
@@ -4958,7 +4981,10 @@ async function generateRealPdfBlob(sourceHtml, filename, opt = {}) {
     filename,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-    jsPDF: { unit: 'mm', format: 'a4', orientation },
+    // format: un tableau [largeur, hauteur] en mm colle jsPDF exactement
+    // à la taille réelle de la page détectée, plutôt qu'un format A4
+    // standard qui pouvait faire déborder le contenu sur une page en trop.
+    jsPDF: { unit: 'mm', format: pageFormat, orientation },
     // 'avoid-all' retiré en mode natif : il ajoute ses propres coupures
     // automatiques qui entrent en conflit avec la pagination réelle du
     // document Word déjà rendue par docx-preview.
