@@ -4034,6 +4034,14 @@ async function buildCloudShareExtra(sel, shareId) {
   if (sel.profiles.length > 0) {
     const p = store.profiles.find(x => x.id === sel.profiles[0]);
     if (p) {
+      // Mode "numéro seul" : on n'envoie QUE le nom et le téléphone — pas
+      // le poste, l'entreprise, la bio, la photo, etc. share.html reçoit
+      // extra.phoneOnly:true pour afficher une simple carte "Enregistrer
+      // le contact" plutôt que le profil complet.
+      if (sel.phoneOnly) {
+        extra.phoneOnly = true;
+        extra.profile = { firstName: p.firstName || '', lastName: p.lastName || '', phone: p.phone || '' };
+      } else {
       extra.profile = {
         firstName: p.firstName || '',
         lastName: p.lastName || '',
@@ -4054,6 +4062,7 @@ async function buildCloudShareExtra(sel, shareId) {
         for (let i = 0; i < p.partnerLogos.length; i++) {
           extra.profile.partnerLogoUrls.push(await resolveMediaUrl(shareId, p.partnerLogos[i], `partenaire_${i}`));
         }
+      }
       }
     }
   }
@@ -4108,11 +4117,13 @@ async function buildCloudShareFlatFiles(sel) {
     const p = store.profiles.find(x => x.id === sel.profiles[0]);
     if (p) {
       if (p.phone) {
-        const vcard = buildVCard(p, false);
+        const vcard = buildVCard(p, !!sel.phoneOnly);
         const vBlob = new Blob([vcard], { type: 'text/vcard' });
         files.push(new File([vBlob], `${p.firstName || 'contact'}_${p.lastName || ''}.vcf`.replace(/\s+/g,'_'), { type: 'text/vcard' }));
       }
-      textParts.push(`${p.firstName || ''} ${p.lastName || ''} — ${p.title || ''}${p.company ? ' · ' + p.company : ''}`.trim());
+      textParts.push(sel.phoneOnly
+        ? `${p.firstName || ''} ${p.lastName || ''}`.trim()
+        : `${p.firstName || ''} ${p.lastName || ''} — ${p.title || ''}${p.company ? ' · ' + p.company : ''}`.trim());
     }
   }
 
@@ -4153,14 +4164,17 @@ async function buildCloudShareFlatFiles(sel) {
 async function activateNFC() {
   const sel = getShareSelection();
 
-  // Mode "numéro seul" : traité EN PREMIER, avant la vérification
-  // générale de sélection ci-dessous. Auparavant, cocher uniquement
-  // "numéro seul" sans EN PLUS cliquer sur une carte de profil dans la
-  // liste tombait sur le message générique "Sélectionnez au moins un
-  // élément" — qui ne dit rien sur le vrai problème. On reproduit aussi
-  // le repli du bouton "Envoyer instantanément" : si aucun profil n'est
-  // explicitement coché, on utilise le profil actif par défaut, au lieu
-  // d'exiger une action de sélection en plus de la case à cocher.
+  // Mode "numéro seul" : au lieu d'écrire un vCard brut directement sur
+  // la puce (l'ancienne approche, qui contournait tout le mécanisme de
+  // passerelle et échouait la plupart du temps), on force simplement la
+  // sélection sur CE profil et on laisse la suite de la fonction suivre
+  // EXACTEMENT le même chemin que n'importe quelle autre sélection :
+  // upload cloud + mise à jour du pointeur cardId. La puce physique,
+  // déjà programmée une fois avec l'URL passerelle stable, redirigera
+  // automatiquement vers ce numéro au prochain tap — sans jamais avoir
+  // besoin d'être réécrite. buildCloudShareExtra() et
+  // buildCloudShareFlatFiles() ci-dessous respectent sel.phoneOnly pour
+  // n'envoyer QUE le numéro (aucune autre donnée du profil).
   if (sel.phoneOnly) {
     const selEl = document.querySelector('#shareProfileList .share-check-item.selected');
     const p = selEl
@@ -4168,23 +4182,11 @@ async function activateNFC() {
       : store.profiles.find(x => x.active) || store.profiles[0];
     if (!p) { toast('Aucun profil disponible','⚠'); return; }
     if (!p.phone) { toast('Ce profil n\'a pas de numéro renseigné','⚠'); return; }
-    const vcard = buildVCard(p, true);
-    if ('NDEFReader' in window) {
-      const ndef = new NDEFReader();
-      try {
-        await ndef.write({ records: [{ recordType: 'mime', mediaType: 'text/vcard', data: new TextEncoder().encode(vcard) }] });
-        toast(`✓ NFC programmée — numéro de ${p.firstName} prêt à être enregistré`);
-      } catch (e) {
-        toast('Erreur NFC : ' + e.message + ' — utilisez le bouton "Envoyer instantanément"', '⚠');
-      }
-    } else {
-      downloadVCard(p.id, true);
-      toast('NFC non disponible sur cet appareil — contact téléchargé à la place');
-    }
-    return;
+    sel.profiles = [p.id];
+    sel.projects = []; sel.socials = []; sel.pitches = []; sel.invoices = []; sel.wordDoc = false;
   }
 
-  const total = sel.profiles.length + sel.projects.length + sel.socials.length + sel.pitches.length + sel.invoices.length + (sel.wordDoc?1:0);
+  const total = sel.phoneOnly ? 1 : (sel.profiles.length + sel.projects.length + sel.socials.length + sel.pitches.length + sel.invoices.length + (sel.wordDoc?1:0));
   if (total === 0) { toast('Sélectionnez au moins un élément à partager','⚠'); return; }
 
   // On écrit la passerelle /api/card UNE SEULE FOIS sur la carte : sa
