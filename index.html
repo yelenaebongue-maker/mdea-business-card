@@ -1854,7 +1854,7 @@ main {
     <div class="modal-header">
       <div>
         <div class="modal-title-eyebrow">Document commercial</div>
-        <div class="modal-title">Nouvelle Facture Proforma</div>
+        <div class="modal-title" id="invoiceModalTitle">Nouvelle Facture Proforma</div>
       </div>
       <button class="modal-close" onclick="closeModal('invoiceModal')">✕</button>
     </div>
@@ -3366,9 +3366,42 @@ async function sharePitchNFC(id) {
 // ============================================================
 // INVOICES
 // ============================================================
-function openInvoiceModal() {
+function openInvoiceModal(editId) {
   store.invoiceItems = [];
-  // Defaults
+  store.editingInvoiceId = editId || null;
+  const inv = editId ? store.invoices.find(i => i.id === editId) : null;
+  document.getElementById('invoiceModalTitle').textContent = inv ? 'Modifier la Facture' : 'Nouvelle Facture Proforma';
+
+  if (inv) {
+    // Mode édition : on reprend les valeurs existantes au lieu des
+    // valeurs par défaut d'une nouvelle facture.
+    document.getElementById('invNumber').value = inv.number || '';
+    document.getElementById('invDate').value = inv.date || '';
+    document.getElementById('invDueDate').value = inv.dueDate || '';
+    document.getElementById('invDiscount').value = inv.discount ?? 0;
+    document.getElementById('invTax').value = inv.tax ?? 19.25;
+    document.getElementById('invCurrency').value = inv.currency || 'FCFA';
+    document.getElementById('invCompanyName').value = inv.companyName || store.companyName || '';
+    document.getElementById('invToName').value = inv.toName || '';
+    document.getElementById('invToEmail').value = inv.toEmail || '';
+    document.getElementById('invToAddress').value = inv.toAddress || '';
+    document.getElementById('invFromName').value = inv.fromName || '';
+    document.getElementById('invFromEmail').value = inv.fromEmail || '';
+    document.getElementById('invFromPhone').value = inv.fromPhone || '';
+    document.getElementById('invFromAddress').value = inv.fromAddress || '';
+    document.getElementById('invNotes').value = inv.notes || '';
+    document.getElementById('invoiceItemsList').innerHTML = '';
+    document.getElementById('invoiceTotalsDisplay').innerHTML = '';
+    if (inv.items && inv.items.length) {
+      inv.items.forEach(it => addInvoiceItem(it));
+    } else {
+      addInvoiceItem();
+    }
+    openModal('invoiceModal');
+    return;
+  }
+
+  // Mode création (comportement inchangé)
   document.getElementById('invNumber').value = `PRO-${new Date().getFullYear()}-${String(store.invoices.length+1).padStart(3,'0')}`;
   document.getElementById('invDate').value = new Date().toISOString().split('T')[0];
   const due = new Date(); due.setDate(due.getDate()+30);
@@ -3385,17 +3418,17 @@ function openInvoiceModal() {
   openModal('invoiceModal');
 }
 
-function addInvoiceItem() {
-  const id = `item_${Date.now()}`;
+function addInvoiceItem(existing) {
+  const id = `item_${Date.now()}_${Math.random().toString(36).substr(2,5)}`;
   store.invoiceItems.push(id);
   const container = document.getElementById('invoiceItemsList');
   const el = document.createElement('div');
   el.className = 'item-row';
   el.id = id;
   el.innerHTML = `
-    <input class="form-input" style="flex:3" id="${id}_desc" placeholder="Description de la prestation" oninput="updateInvoiceTotals()">
-    <input class="form-input narrow" id="${id}_qty" type="number" value="1" min="1" placeholder="Qté" oninput="updateInvoiceTotals()">
-    <input class="form-input narrow" id="${id}_price" type="number" value="0" placeholder="P.U." oninput="updateInvoiceTotals()">
+    <input class="form-input" style="flex:3" id="${id}_desc" placeholder="Description de la prestation" oninput="updateInvoiceTotals()" value="${(existing?.desc||'').replace(/"/g,'&quot;')}">
+    <input class="form-input narrow" id="${id}_qty" type="number" value="${existing?.qty ?? 1}" min="1" placeholder="Qté" oninput="updateInvoiceTotals()">
+    <input class="form-input narrow" id="${id}_price" type="number" value="${existing?.price ?? 0}" placeholder="P.U." oninput="updateInvoiceTotals()">
     <input class="form-input narrow" id="${id}_total" readonly placeholder="Total" style="color:var(--gold)">
     <button class="btn-icon" onclick="removeInvoiceItem('${id}')" style="color:#e05050;flex-shrink:0">✕</button>`;
   container.appendChild(el);
@@ -3470,11 +3503,20 @@ function collectInvoiceData() {
 function saveInvoice() {
   const data = collectInvoiceData();
   if (!data.toName) { toast('Le nom du client est requis','⚠'); return; }
-  const invoice = { id: Date.now().toString(), status: 'draft', ...data };
-  store.invoices.push(invoice);
+  if (store.editingInvoiceId) {
+    const inv = store.invoices.find(i => i.id === store.editingInvoiceId);
+    if (inv) {
+      Object.assign(inv, data); // garde id et status existants, met à jour le reste
+      toast('Facture mise à jour');
+    }
+    store.editingInvoiceId = null;
+  } else {
+    const invoice = { id: Date.now().toString(), status: 'draft', ...data };
+    store.invoices.push(invoice);
+    toast('Facture enregistrée');
+  }
   closeModal('invoiceModal');
   renderInvoices();
-  toast('Facture enregistrée');
 }
 
 function renderInvoices() {
@@ -3524,6 +3566,7 @@ function renderInvoices() {
       </div>
       <div class="invoice-card-footer">
         <button class="btn-outline" onclick="viewInvoice('${inv.id}')">👁 Aperçu</button>
+        <button class="btn-ghost" onclick="openInvoiceModal('${inv.id}')" title="Modifier">✎</button>
         <button class="btn-ghost" onclick="shareInvoiceDirectly('${inv.id}')" title="Partager via NFC">⬡</button>
         <select class="form-input" style="font-size:0.65rem;padding:7px 10px;max-width:130px" onchange="setInvoiceStatus('${inv.id}',this.value)">
           <option value="draft" ${inv.status==='draft'?'selected':''}>Brouillon</option>
