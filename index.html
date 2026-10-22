@@ -2180,6 +2180,10 @@ main {
               <div style="font-size:0.7rem;color:var(--mid-gray);margin-top:8px;">MDEA Business Card</div>
             </div>
           </div>
+          <div style="text-align:center;margin-top:10px">
+            <button class="btn-outline" onclick="downloadCardQR()">⬇ Télécharger le QR (impression)</button>
+            <div style="font-size:0.62rem;color:var(--mid-gray);margin-top:6px;line-height:1.5">Ce QR est permanent : il suit automatiquement votre sélection NFC actuelle.</div>
+          </div>
           <div class="share-link-box">
             <input class="share-link-input" id="shareLinkInput" value='Cliquez sur "Copier" pour générer un lien de partage' readonly>
             <button class="btn-primary" onclick="copyShareLink(event)">Copier</button>
@@ -3899,8 +3903,13 @@ function openShareModal() {
     </div>`;
   }
 
-  generateQR(null);
-  document.getElementById('shareLinkInput').value = 'Cliquez sur "Copier" pour générer un lien de partage';
+  // Le QR de la carte est PERMANENT : il ne dépend pas de la sélection,
+  // on l'affiche donc dès l'ouverture du modal.
+  getStableCardId().then(cardId => {
+    const gw = getCardGatewayUrl(cardId);
+    generateQR(gw);
+    document.getElementById('shareLinkInput').value = gw;
+  }).catch(() => generateQR(null));
   openModal('shareModal');
 }
 
@@ -4609,8 +4618,14 @@ async function createCloudShare({ files = [], text = '', title = 'MDEA Business 
 // carte". Son contenu final (où elle redirige) est résolu par le serveur
 // à chaque tap — voir resolve-card.mjs — donc elle n'a jamais besoin
 // d'être réécrite sur le tag, même après une reprogrammation.
+// Domaine PUBLIC définitif : c'est lui qui est encodé dans le QR imprimé et
+// sur la puce NFC, quel que soit l'endroit d'où vous ouvrez l'éditeur
+// (aperçu Netlify, localhost, ancien sous-domaine .netlify.app...).
+// NE JAMAIS le changer après impression des cartes.
+const PUBLIC_ORIGIN = 'https://mdea-business-card.com';
+
 function getCardGatewayUrl(cardId) {
-  return `${window.location.origin}/api/card?id=${encodeURIComponent(cardId)}`;
+  return `${PUBLIC_ORIGIN}/api/card?id=${encodeURIComponent(cardId)}`;
 }
 
 // Raccourci pour les partages "un seul document" (facture, pitch, word doc)
@@ -4657,6 +4672,39 @@ async function generateQR(text) {
     colorLight: '#ffffff',
     correctLevel: QRCode.CorrectLevel.M
   });
+}
+
+// QR haute résolution pour l'impression : PNG 1200x1200, correction d'erreur H
+async function downloadCardQR() {
+  try {
+    if (typeof QRCode === 'undefined') {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js');
+    }
+    const cardId = await getStableCardId();
+    const url = getCardGatewayUrl(cardId);
+
+    const tmp = document.createElement('div');
+    tmp.style.cssText = 'position:fixed;left:-9999px;top:0';
+    document.body.appendChild(tmp);
+    new QRCode(tmp, {
+      text: url, width: 1200, height: 1200,
+      colorDark: '#000000', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+    await new Promise(r => setTimeout(r, 150));
+    const canvas = tmp.querySelector('canvas');
+    if (!canvas) throw new Error('canvas introuvable');
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'mdea-qr-carte.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    tmp.remove();
+    toast('✓ QR téléchargé');
+  } catch (e) {
+    toast('Erreur export QR : ' + e.message, '⚠');
+  }
 }
 
 // ============================================================
